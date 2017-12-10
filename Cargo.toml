@@ -7,3 +7,7 @@ license = "Apache-2.0"
 homepage = "https://github.com/argumate/market"
 
 [dependencies]
+time = "0.1.38"
+failure = "0.1.1"
+getopts = "0.2.15"
+rusqlite = "0.13.0"

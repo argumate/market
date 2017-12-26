@@ -1,7 +1,15 @@
 extern crate failure;
 extern crate getopts;
-extern crate rusqlite;
 extern crate time;
+extern crate rusqlite;
+
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde;
+extern crate serde_json;
+
+extern crate uuid;
 
 pub mod db;
 pub mod market;
@@ -9,10 +17,11 @@ pub mod market;
 use failure::Error;
 use getopts::Options;
 use std::env;
-use time::get_time;
 
 use db::DB;
-use market::{Market, UserRow, IOURow, EntityRow, RelRow, /*PropRow,*/ PredRow, DependRow};
+use market::Market;
+use market::types::{ID, ArgList, UserFields, IOUFields, EntityFields, RelFields, PredFields, DependFields};
+use market::msgs::{Request, Response, Item, Query};
 
 enum CmdLine {
     Help,
@@ -80,128 +89,123 @@ fn main() {
     };
 }
 
+impl Response {
+    fn unwrap_id(self: Response) -> ID {
+        match self {
+            Response::Created(id) => id,
+            Response::Items(_) => panic!("expected ID!")
+        }
+    }
+}
+
 fn do_command(cmd: Command) -> Result<(), Error> {
     match cmd {
         Command::Init(file) => {
             let db = DB::open_read_write(&file)?;
             let mut market = Market::create_new(db)?;
 
-            market.insert_user(&UserRow {
-                    user_id: String::from("foo"),
-                    user_name: String::from("Mr Foo"),
-                    creation_time: get_time()
-                })?;
+            let mrfoo = market.do_request(Request::Create(
+                Item::User(UserFields {
+                    user_name: String::from("Mr Foo")
+                })))?.unwrap_id();
 
-            market.insert_user(&UserRow {
-                    user_id: String::from("bar"),
-                    user_name: String::from("Mr Bar"),
-                    creation_time: get_time()
-                })?;
+            let mrbar = market.do_request(Request::Create(
+                Item::User(UserFields {
+                    user_name: String::from("Mr Bar")
+                })))?.unwrap_id();
 
-            market.insert_iou(&IOURow {
-                    issuer: String::from("foo"),
-                    holder: String::from("bar"),
-                    amount: 17,
-                    creation_time: get_time()
-                })?;
+            market.do_request(Request::Create(
+                Item::IOU(IOUFields {
+                    iou_issuer: mrfoo,
+                    iou_holder: mrbar,
+                    iou_amount: 17
+                })))?;
 
-            market.insert_entity(&EntityRow {
-                    entity_id: String::from("trump"),
+            let trump = market.do_request(Request::Create(
+                Item::Entity(EntityFields {
                     entity_name: String::from("Donald Trump"),
                     entity_type: String::from("person"),
-                    creation_time: get_time()
-                })?;
+                })))?.unwrap_id();
 
-            market.insert_entity(&EntityRow {
-                    entity_id: String::from("jeb"),
+            let jeb = market.do_request(Request::Create(
+                Item::Entity(EntityFields {
                     entity_name: String::from("Jeb Bush"),
                     entity_type: String::from("person"),
-                    creation_time: get_time()
-                })?;
+                })))?.unwrap_id();
 
-            market.insert_entity(&EntityRow {
-                    entity_id: String::from("republican"),
+            let repub = market.do_request(Request::Create(
+                Item::Entity(EntityFields {
                     entity_name: String::from("Republican Party"),
                     entity_type: String::from("party"),
-                    creation_time: get_time()
-                })?;
+                })))?.unwrap_id();
 
-            market.insert_entity(&EntityRow {
-                    entity_id: String::from("democrat"),
+            let _dem = market.do_request(Request::Create(
+                Item::Entity(EntityFields {
                     entity_name: String::from("Democratic Party"),
                     entity_type: String::from("party"),
-                    creation_time: get_time()
-                })?;
+                })))?.unwrap_id();
 
-            market.insert_rel(&RelRow {
+            market.do_request(Request::Create(
+                Item::Rel(RelFields {
                     rel_type: String::from("party"),
-                    rel_from: String::from("jeb"),
-                    rel_to: String::from("republican"),
-                    creation_time: get_time()
-                })?;
+                    rel_from: jeb,
+                    rel_to: repub.clone(),
+                })))?;
 
-            market.insert_rel(&RelRow {
+            market.do_request(Request::Create(
+                Item::Rel(RelFields {
                     rel_type: String::from("party"),
-                    rel_from: String::from("trump"),
-                    rel_to: String::from("republican"),
-                    creation_time: get_time()
-                })?;
+                    rel_from: trump,
+                    rel_to: repub,
+                })))?;
 
-            market.insert_pred(&PredRow {
-                    pred_id: String::from("nominee2020"),
+            let nominee2020 = market.do_request(Request::Create(
+                Item::Pred(PredFields {
                     pred_name: String::from("Party nominee for 2020 election"),
-                    pred_arity: 2,
-                    pred_type: String::from("party, person"),
-                    pred_value: None,
-                    creation_time: get_time()
-                })?;
+                    pred_args: ArgList::from("party,person"),
+                    pred_value: None
+                })))?.unwrap_id();
 
-            market.insert_pred(&PredRow {
-                    pred_id: String::from("candidate2020"),
+            let candidate2020 = market.do_request(Request::Create(
+                Item::Pred(PredFields {
                     pred_name: String::from("Candidate wins 2020 election"),
-                    pred_arity: 1,
-                    pred_type: String::from("person"),
-                    pred_value: None,
-                    creation_time: get_time()
-                })?;
+                    pred_args: ArgList::from("person"),
+                    pred_value: None
+                })))?.unwrap_id();
 
-            market.insert_pred(&PredRow {
-                    pred_id: String::from("party2020"),
+            let party2020 = market.do_request(Request::Create(
+                Item::Pred(PredFields {
                     pred_name: String::from("Party wins 2020 election"),
-                    pred_arity: 1,
-                    pred_type: String::from("party"),
-                    pred_value: None,
-                    creation_time: get_time()
-                })?;
+                    pred_args: ArgList::from("party"),
+                    pred_value: None
+                })))?.unwrap_id();
 
-            market.insert_depend(&DependRow {
+            market.do_request(Request::Create(
+                Item::Depend(DependFields {
                     depend_type: String::from("requires"),
-                    depend_pred1: String::from("candidate2020"),
-                    depend_pred2: String::from("nominee2020"),
-                    depend_vars: String::from("x"),
-                    depend_args1: String::from("x"),
-                    depend_args2: String::from("x.party, x"),
-                    creation_time: get_time()
-                })?;
+                    depend_pred1: candidate2020.clone(),
+                    depend_pred2: nominee2020,
+                    depend_vars: ArgList::from("x"),
+                    depend_args1: ArgList::from("x"),
+                    depend_args2: ArgList::from("x.party, x")
+                })))?;
 
-            market.insert_depend(&DependRow {
+            market.do_request(Request::Create(
+                Item::Depend(DependFields {
                     depend_type: String::from("implies"),
-                    depend_pred1: String::from("candidate2020"),
-                    depend_pred2: String::from("party2020"),
-                    depend_vars: String::from("x"),
-                    depend_args1: String::from("x"),
-                    depend_args2: String::from("x.party"),
-                    creation_time: get_time()
-                })?;
+                    depend_pred1: candidate2020,
+                    depend_pred2: party2020,
+                    depend_vars: ArgList::from("x"),
+                    depend_args1: ArgList::from("x"),
+                    depend_args2: ArgList::from("x.party")
+                })))?;
 
-            market.insert_pred(&PredRow {
-                    pred_id: String::from("ppm500"),
+            market.do_request(Request::Create(
+                Item::Pred(PredFields {
                     pred_name: String::from("Atmospheric CO2 levels pass 500ppm"),
-                    pred_arity: 1,
-                    pred_type: String::from("time"),
-                    pred_value: None,
-                    creation_time: get_time()
-                })?;
+                    pred_args: ArgList::from("time"),
+                    pred_value: None
+                })))?;
 
             Ok(())
         }
@@ -209,30 +213,19 @@ fn do_command(cmd: Command) -> Result<(), Error> {
             let db = DB::open_read_only(&file)?;
             let mut market = Market::open_existing(db)?;
             println!("{:?}", market.info);
-            for user in market.select_all_user()? {
-                println!("{:?}", user);
-            }
-            for iou in market.select_all_iou()? {
-                println!("{:?}", iou);
-            }
-            for entity in market.select_all_entity()? {
-                println!("{:?}", entity);
-            }
-            for rel in market.select_all_rel()? {
-                println!("{:?}", rel);
-            }
-            for prop in market.select_all_prop()? {
-                println!("{:?}", prop);
-            }
-            for pred in market.select_all_pred()? {
-                println!("{:?}", pred);
-            }
-            for depend in market.select_all_depend()? {
-                println!("{:?}", depend);
-            }
+            print_response(&market.do_request(Request::Query(Query::AllUser))?);
+            print_response(&market.do_request(Request::Query(Query::AllIOU))?);
+            print_response(&market.do_request(Request::Query(Query::AllEntity))?);
+            print_response(&market.do_request(Request::Query(Query::AllRel))?);
+            print_response(&market.do_request(Request::Query(Query::AllPred))?);
+            print_response(&market.do_request(Request::Query(Query::AllDepend))?);
             Ok(())
         }
     }
+}
+
+fn print_response(response: &Response) {
+    println!("{}", serde_json::to_string(response).unwrap())
 }
 
 // vi: ts=8 sts=4 et

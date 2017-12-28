@@ -6,7 +6,7 @@ use rusqlite::Row;
 use rusqlite::types::{ToSql, ToSqlOutput, FromSql, Value, ValueRef};
 
 use db::TableRow;
-use market::types::{ID, ArgList, User, IOU, Cond, Entity, Rel, Pred, Depend};
+use market::types::{ID, ArgList, User, IOU, Cond, Offer, Entity, Rel, Pred, Depend};
 
 #[derive(Debug)]
 pub struct MarketRow {
@@ -221,6 +221,50 @@ impl TableRow for Record<Cond> {
         } else {
             Err(err_msg(format!("cond has too many arguments: {}", cond_args.len())))
         }
+    }
+}
+
+impl TableRow for Record<Offer> {
+    const TABLE_NAME : &'static str = "offer";
+
+    const CREATE_TABLE : &'static str =
+        "CREATE TABLE offer (
+            offer_id        TEXT NOT NULL PRIMARY KEY,
+            offer_user      TEXT NOT NULL REFERENCES user(user_id),
+            offer_cond      TEXT NOT NULL REFERENCES cond(cond_id),
+            offer_buy       INTEGER NOT NULL,
+            offer_sell      INTEGER NOT NULL,
+            creation_time   TEXT NOT NULL,
+            UNIQUE(offer_user, offer_cond)
+        )";
+
+    const INSERT: &'static str =
+        "INSERT INTO offer
+            (offer_id, offer_user, offer_cond, offer_buy, offer_sell, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+
+    fn from_row(r: &Row) -> Result<Self, Error> {
+        let offer_id = r.get_checked("offer_id")?;
+        let offer_user = r.get_checked("offer_user")?;
+        let offer_cond = r.get_checked("offer_cond")?;
+        let offer_buy = r.get_checked("offer_buy")?;
+        let offer_sell = r.get_checked("offer_sell")?;
+        let creation_time = r.get_checked("creation_time")?;
+        Ok(Record {
+            id: offer_id,
+            fields: Offer {
+                offer_user,
+                offer_cond,
+                offer_buy,
+                offer_sell
+            },
+            creation_time
+        })
+    }
+
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.id, &self.fields.offer_user, &self.fields.offer_cond, &self.fields.offer_buy, &self.fields.offer_sell, &self.creation_time])
     }
 }
 

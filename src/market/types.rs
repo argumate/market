@@ -26,6 +26,14 @@ pub struct Cond {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Offer {
+    pub offer_user: ID,
+    pub offer_cond: ID,
+    pub offer_buy: u32,
+    pub offer_sell: u32
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Entity {
     pub entity_name: String,
     pub entity_type: String

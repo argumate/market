@@ -7,7 +7,7 @@ pub mod msgs;
 mod tables;
 
 use db::DB;
-use market::types::{ID, User, IOU, Cond, Entity, Rel, Pred, Depend};
+use market::types::{ID, User, IOU, Cond, Offer, Entity, Rel, Pred, Depend};
 use market::tables::{MarketRow, Record, PropRow};
 use market::msgs::{Request, Response, Query, Item, ToItem};
 
@@ -22,6 +22,7 @@ impl Market {
         db.make_table::<Record<User>>()?;
         db.make_table::<Record<IOU>>()?;
         db.make_table::<Record<Cond>>()?;
+        db.make_table::<Record<Offer>>()?;
         db.make_table::<Record<Entity>>()?;
         db.make_table::<Record<Rel>>()?;
         db.make_table::<PropRow>()?;
@@ -99,6 +100,12 @@ impl Market {
                 self.db.insert_row(&record)?;
                 Ok(Response::Created(record.id))
             }
+            Item::Offer(offer) => {
+                // FIXME validation
+                let record = Record::new(offer);
+                self.db.insert_row(&record)?;
+                Ok(Response::Created(record.id))
+            }
             Item::Entity(entity) => {
                 // FIXME validation
                 let record = Record::new(entity);
@@ -145,6 +152,11 @@ impl Market {
             Query::AllCond => {
                 // FIXME access control
                 let items = self.select_all_cond()?.into_iter().map(to_item).collect();
+                Ok(Response::Items(items))
+            }
+            Query::AllOffer => {
+                // FIXME access control
+                let items = self.db.select_all::<Record<Offer>>()?.into_iter().map(to_item).collect();
                 Ok(Response::Items(items))
             }
             Query::AllEntity => {

@@ -20,7 +20,7 @@ use std::env;
 
 use db::DB;
 use market::Market;
-use market::types::{ID, ArgList, User, IOU, Cond, Entity, Rel, Pred, Depend};
+use market::types::{ID, ArgList, User, IOU, Cond, Offer, Entity, Rel, Pred, Depend};
 use market::msgs::{Request, Response, Item, Query};
 
 enum CmdLine {
@@ -205,7 +205,15 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     cond_pred: candidate2020.clone(),
                     cond_args: vec![trump.clone()],
                 })))?.unwrap_id();
-            
+
+            market.do_request(Request::Create(
+                Item::Offer(Offer {
+                    offer_user: mrfoo.clone(),
+                    offer_cond: trump_elected.clone(),
+                    offer_buy: 34,
+                    offer_sell: 45
+                })))?.unwrap_id();
+
             market.do_request(Request::Create(
                 Item::IOU(IOU {
                     iou_issuer: mrfoo,
@@ -224,6 +232,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
             print_response(&market.do_request(Request::Query(Query::AllUser))?);
             print_response(&market.do_request(Request::Query(Query::AllIOU))?);
             print_response(&market.do_request(Request::Query(Query::AllCond))?);
+            print_response(&market.do_request(Request::Query(Query::AllOffer))?);
             print_response(&market.do_request(Request::Query(Query::AllEntity))?);
             print_response(&market.do_request(Request::Query(Query::AllRel))?);
             print_response(&market.do_request(Request::Query(Query::AllPred))?);

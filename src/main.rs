@@ -20,7 +20,7 @@ use std::env;
 
 use db::DB;
 use market::Market;
-use market::types::{ID, ArgList, UserFields, IOUFields, EntityFields, RelFields, PredFields, DependFields};
+use market::types::{ID, ArgList, User, IOU, Entity, Rel, Pred, Depend};
 use market::msgs::{Request, Response, Item, Query};
 
 enum CmdLine {
@@ -105,83 +105,83 @@ fn do_command(cmd: Command) -> Result<(), Error> {
             let mut market = Market::create_new(db)?;
 
             let mrfoo = market.do_request(Request::Create(
-                Item::User(UserFields {
+                Item::User(User {
                     user_name: String::from("Mr Foo")
                 })))?.unwrap_id();
 
             let mrbar = market.do_request(Request::Create(
-                Item::User(UserFields {
+                Item::User(User {
                     user_name: String::from("Mr Bar")
                 })))?.unwrap_id();
 
             market.do_request(Request::Create(
-                Item::IOU(IOUFields {
+                Item::IOU(IOU {
                     iou_issuer: mrfoo,
                     iou_holder: mrbar,
                     iou_amount: 17
                 })))?;
 
             let trump = market.do_request(Request::Create(
-                Item::Entity(EntityFields {
+                Item::Entity(Entity {
                     entity_name: String::from("Donald Trump"),
                     entity_type: String::from("person"),
                 })))?.unwrap_id();
 
             let jeb = market.do_request(Request::Create(
-                Item::Entity(EntityFields {
+                Item::Entity(Entity {
                     entity_name: String::from("Jeb Bush"),
                     entity_type: String::from("person"),
                 })))?.unwrap_id();
 
             let repub = market.do_request(Request::Create(
-                Item::Entity(EntityFields {
+                Item::Entity(Entity {
                     entity_name: String::from("Republican Party"),
                     entity_type: String::from("party"),
                 })))?.unwrap_id();
 
             let _dem = market.do_request(Request::Create(
-                Item::Entity(EntityFields {
+                Item::Entity(Entity {
                     entity_name: String::from("Democratic Party"),
                     entity_type: String::from("party"),
                 })))?.unwrap_id();
 
             market.do_request(Request::Create(
-                Item::Rel(RelFields {
+                Item::Rel(Rel {
                     rel_type: String::from("party"),
                     rel_from: jeb,
                     rel_to: repub.clone(),
                 })))?;
 
             market.do_request(Request::Create(
-                Item::Rel(RelFields {
+                Item::Rel(Rel {
                     rel_type: String::from("party"),
                     rel_from: trump,
                     rel_to: repub,
                 })))?;
 
             let nominee2020 = market.do_request(Request::Create(
-                Item::Pred(PredFields {
+                Item::Pred(Pred {
                     pred_name: String::from("Party nominee for 2020 election"),
                     pred_args: ArgList::from("party,person"),
                     pred_value: None
                 })))?.unwrap_id();
 
             let candidate2020 = market.do_request(Request::Create(
-                Item::Pred(PredFields {
+                Item::Pred(Pred {
                     pred_name: String::from("Candidate wins 2020 election"),
                     pred_args: ArgList::from("person"),
                     pred_value: None
                 })))?.unwrap_id();
 
             let party2020 = market.do_request(Request::Create(
-                Item::Pred(PredFields {
+                Item::Pred(Pred {
                     pred_name: String::from("Party wins 2020 election"),
                     pred_args: ArgList::from("party"),
                     pred_value: None
                 })))?.unwrap_id();
 
             market.do_request(Request::Create(
-                Item::Depend(DependFields {
+                Item::Depend(Depend {
                     depend_type: String::from("requires"),
                     depend_pred1: candidate2020.clone(),
                     depend_pred2: nominee2020,
@@ -191,7 +191,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                 })))?;
 
             market.do_request(Request::Create(
-                Item::Depend(DependFields {
+                Item::Depend(Depend {
                     depend_type: String::from("implies"),
                     depend_pred1: candidate2020,
                     depend_pred2: party2020,
@@ -201,7 +201,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                 })))?;
 
             market.do_request(Request::Create(
-                Item::Pred(PredFields {
+                Item::Pred(Pred {
                     pred_name: String::from("Atmospheric CO2 levels pass 500ppm"),
                     pred_args: ArgList::from("time"),
                     pred_value: None

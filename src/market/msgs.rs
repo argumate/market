@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use market::types::{ID, UserFields, IOUFields, EntityFields, RelFields, PredFields, DependFields};
+use market::types::{ID, User, IOU, Entity, Rel, Pred, Depend};
 
 #[derive(Serialize, Deserialize)]
 pub enum Request {
@@ -11,12 +11,12 @@ pub enum Request {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Item {
-    User(UserFields),
-    IOU(IOUFields),
-    Entity(EntityFields),
-    Rel(RelFields),
-    Pred(PredFields),
-    Depend(DependFields)
+    User(User),
+    IOU(IOU),
+    Entity(Entity),
+    Rel(Rel),
+    Pred(Pred),
+    Depend(Depend)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -39,37 +39,37 @@ pub trait ToItem {
     fn to_item(self: Self) -> Item;
 }
 
-impl ToItem for UserFields {
+impl ToItem for User {
     fn to_item(self: Self) -> Item {
         Item::User(self)
     }
 }
 
-impl ToItem for IOUFields {
+impl ToItem for IOU {
     fn to_item(self: Self) -> Item {
         Item::IOU(self)
     }
 }
 
-impl ToItem for EntityFields {
+impl ToItem for Entity {
     fn to_item(self: Self) -> Item {
         Item::Entity(self)
     }
 }
 
-impl ToItem for RelFields {
+impl ToItem for Rel {
     fn to_item(self: Self) -> Item {
         Item::Rel(self)
     }
 }
 
-impl ToItem for PredFields {
+impl ToItem for Pred {
     fn to_item(self: Self) -> Item {
         Item::Pred(self)
     }
 }
 
-impl ToItem for DependFields {
+impl ToItem for Depend {
     fn to_item(self: Self) -> Item {
         Item::Depend(self)
     }

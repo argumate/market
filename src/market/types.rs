@@ -6,39 +6,39 @@ pub struct ID(pub String);
 pub struct ArgList(Vec<String>);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UserFields {
+pub struct User {
     pub user_name: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct IOUFields {
+pub struct IOU {
     pub iou_issuer: ID,
     pub iou_holder: ID,
     pub iou_amount: u32
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct EntityFields {
+pub struct Entity {
     pub entity_name: String,
     pub entity_type: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RelFields {
+pub struct Rel {
     pub rel_type: String,
     pub rel_from: ID,
     pub rel_to: ID
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PredFields {
+pub struct Pred {
     pub pred_name: String,
     pub pred_args: ArgList,
     pub pred_value: Option<String>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DependFields {
+pub struct Depend {
     pub depend_type: String,
     pub depend_pred1: ID,
     pub depend_pred2: ID,

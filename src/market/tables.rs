@@ -6,7 +6,7 @@ use rusqlite::Row;
 use rusqlite::types::{ToSql, ToSqlOutput, FromSql, Value, ValueRef};
 
 use db::TableRow;
-use market::types::{ID, ArgList, UserFields, IOUFields, EntityFields, RelFields, PredFields, DependFields};
+use market::types::{ID, ArgList, User, IOU, Entity, Rel, Pred, Depend};
 
 #[derive(Debug)]
 pub struct MarketRow {
@@ -90,7 +90,7 @@ impl TableRow for MarketRow {
     }
 }
 
-impl TableRow for Record<UserFields> {
+impl TableRow for Record<User> {
     const TABLE_NAME : &'static str = "user";
 
     const CREATE_TABLE : &'static str =
@@ -111,7 +111,7 @@ impl TableRow for Record<UserFields> {
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: user_id,
-            fields: UserFields {
+            fields: User {
                 user_name
             },
             creation_time
@@ -123,7 +123,7 @@ impl TableRow for Record<UserFields> {
     }
 }
 
-impl TableRow for Record<IOUFields> {
+impl TableRow for Record<IOU> {
     const TABLE_NAME : &'static str = "iou";
 
     const CREATE_TABLE : &'static str =
@@ -148,7 +148,7 @@ impl TableRow for Record<IOUFields> {
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: iou_id,
-            fields: IOUFields {
+            fields: IOU {
                 iou_issuer, iou_holder, iou_amount
             },
             creation_time
@@ -160,7 +160,7 @@ impl TableRow for Record<IOUFields> {
     }
 }
 
-impl TableRow for Record<EntityFields> {
+impl TableRow for Record<Entity> {
     const TABLE_NAME : &'static str = "entity";
 
     const CREATE_TABLE : &'static str =
@@ -183,7 +183,7 @@ impl TableRow for Record<EntityFields> {
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: entity_id,
-            fields: EntityFields {
+            fields: Entity {
                 entity_name, entity_type
             },
             creation_time
@@ -195,7 +195,7 @@ impl TableRow for Record<EntityFields> {
     }
 }
 
-impl TableRow for Record<RelFields> {
+impl TableRow for Record<Rel> {
     const TABLE_NAME : &'static str = "rel";
 
     const CREATE_TABLE : &'static str =
@@ -221,7 +221,7 @@ impl TableRow for Record<RelFields> {
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: rel_id,
-            fields: RelFields {
+            fields: Rel {
                 rel_type, rel_from, rel_to
             },
             creation_time
@@ -263,7 +263,7 @@ impl TableRow for PropRow {
     }
 }
 
-impl TableRow for Record<PredFields> {
+impl TableRow for Record<Pred> {
     const TABLE_NAME : &'static str = "pred";
 
     const CREATE_TABLE : &'static str =
@@ -288,7 +288,7 @@ impl TableRow for Record<PredFields> {
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: pred_id,
-            fields: PredFields {
+            fields: Pred {
                 pred_name, pred_args, pred_value
             },
             creation_time
@@ -300,7 +300,7 @@ impl TableRow for Record<PredFields> {
     }
 }
 
-impl TableRow for Record<DependFields> {
+impl TableRow for Record<Depend> {
     const TABLE_NAME : &'static str = "depend";
 
     const CREATE_TABLE : &'static str =
@@ -332,7 +332,7 @@ impl TableRow for Record<DependFields> {
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: depend_id,
-            fields: DependFields {
+            fields: Depend {
                 depend_type, depend_pred1, depend_pred2, depend_vars, depend_args1, depend_args2
             },
             creation_time

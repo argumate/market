@@ -12,7 +12,8 @@ pub trait TableRow where Self: Sized {
     const CREATE_TABLE: &'static str;
     const INSERT: &'static str;
     fn from_row(r: &Row) -> Result<Self, Error>;
-    fn to_insert_params(self: &Self) -> Vec<&ToSql>;
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+        where F: FnOnce(&[&ToSql]) -> Result<(), Error>;
 }
 
 impl DB {
@@ -68,9 +69,10 @@ impl DB {
 
     pub fn insert_row<T: TableRow>(self: &mut DB, t: &T) -> Result<(), Error> {
         let mut stmt = self.conn.prepare(T::INSERT)?;
-        let params = t.to_insert_params();
-        stmt.insert(&params)?;
-        Ok(())
+        t.do_insert(|params| {
+            stmt.insert(&params)?;
+            Ok(())
+        })
     }
 }
 

@@ -85,8 +85,9 @@ impl TableRow for MarketRow {
         Ok(MarketRow { version, creation_time })
     }
 
-    fn to_insert_params(self: &Self) -> Vec<&ToSql> {
-        vec![&self.version, &self.creation_time]
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.version, &self.creation_time])
     }
 }
 
@@ -118,8 +119,9 @@ impl TableRow for Record<User> {
         })
     }
 
-    fn to_insert_params(self: &Self) -> Vec<&ToSql> {
-        vec![&self.id, &self.fields.user_name, &self.creation_time]
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.id, &self.fields.user_name, &self.creation_time])
     }
 }
 
@@ -155,8 +157,9 @@ impl TableRow for Record<IOU> {
         })
     }
 
-    fn to_insert_params(self: &Self) -> Vec<&ToSql> {
-        vec![&self.id, &self.fields.iou_issuer, &self.fields.iou_holder, &self.fields.iou_amount, &self.creation_time]
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.id, &self.fields.iou_issuer, &self.fields.iou_holder, &self.fields.iou_amount, &self.creation_time])
     }
 }
 
@@ -190,8 +193,9 @@ impl TableRow for Record<Entity> {
         })
     }
 
-    fn to_insert_params(self: &Self) -> Vec<&ToSql> {
-        vec![&self.id, &self.fields.entity_name, &self.fields.entity_type, &self.creation_time]
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.id, &self.fields.entity_name, &self.fields.entity_type, &self.creation_time])
     }
 }
 
@@ -228,8 +232,9 @@ impl TableRow for Record<Rel> {
         })
     }
 
-    fn to_insert_params(self: &Self) -> Vec<&ToSql> {
-        vec![&self.id, &self.fields.rel_type, &self.fields.rel_from, &self.fields.rel_to, &self.creation_time]
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.id, &self.fields.rel_type, &self.fields.rel_from, &self.fields.rel_to, &self.creation_time])
     }
 }
 
@@ -258,8 +263,9 @@ impl TableRow for PropRow {
         Ok(PropRow { entity_id, prop_id, prop_value, creation_time })
     }
 
-    fn to_insert_params(self: &Self) -> Vec<&ToSql> {
-        vec![&self.entity_id, &self.prop_id, &self.prop_value, &self.creation_time]
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.entity_id, &self.prop_id, &self.prop_value, &self.creation_time])
     }
 }
 
@@ -295,8 +301,9 @@ impl TableRow for Record<Pred> {
         })
     }
 
-    fn to_insert_params(self: &Self) -> Vec<&ToSql> {
-        vec![&self.id, &self.fields.pred_name, &self.fields.pred_args, &self.fields.pred_value, &self.creation_time]
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.id, &self.fields.pred_name, &self.fields.pred_args, &self.fields.pred_value, &self.creation_time])
     }
 }
 
@@ -339,8 +346,9 @@ impl TableRow for Record<Depend> {
         })
     }
 
-    fn to_insert_params(self: &Self) -> Vec<&ToSql> {
-        vec![&self.id, &self.fields.depend_type, &self.fields.depend_pred1, &self.fields.depend_pred2, &self.fields.depend_vars, &self.fields.depend_args1, &self.fields.depend_args2, &self.creation_time]
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        insert(&[&self.id, &self.fields.depend_type, &self.fields.depend_pred1, &self.fields.depend_pred2, &self.fields.depend_vars, &self.fields.depend_args1, &self.fields.depend_args2, &self.creation_time])
     }
 }
 

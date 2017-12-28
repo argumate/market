@@ -7,7 +7,7 @@ pub mod msgs;
 mod tables;
 
 use db::DB;
-use market::types::{ID, User, IOU, Entity, Rel, Pred, Depend};
+use market::types::{ID, User, IOU, Cond, Entity, Rel, Pred, Depend};
 use market::tables::{MarketRow, Record, PropRow};
 use market::msgs::{Request, Response, Query, Item, ToItem};
 
@@ -21,6 +21,7 @@ impl Market {
         db.make_table::<MarketRow>()?;
         db.make_table::<Record<User>>()?;
         db.make_table::<Record<IOU>>()?;
+        db.make_table::<Record<Cond>>()?;
         db.make_table::<Record<Entity>>()?;
         db.make_table::<Record<Rel>>()?;
         db.make_table::<PropRow>()?;
@@ -47,6 +48,10 @@ impl Market {
     }
 
     pub fn select_all_iou(self: &mut Self) -> Result<Vec<Record<IOU>>, Error> {
+        self.db.select_all()
+    }
+
+    pub fn select_all_cond(self: &mut Self) -> Result<Vec<Record<Cond>>, Error> {
         self.db.select_all()
     }
 
@@ -85,6 +90,12 @@ impl Market {
             Item::IOU(iou) => {
                 // FIXME validation
                 let record = Record::new(iou);
+                self.db.insert_row(&record)?;
+                Ok(Response::Created(record.id))
+            }
+            Item::Cond(cond) => {
+                // FIXME validation
+                let record = Record::new(cond);
                 self.db.insert_row(&record)?;
                 Ok(Response::Created(record.id))
             }
@@ -129,6 +140,11 @@ impl Market {
             Query::AllIOU => {
                 // FIXME access control
                 let items = self.select_all_iou()?.into_iter().map(to_item).collect();
+                Ok(Response::Items(items))
+            }
+            Query::AllCond => {
+                // FIXME access control
+                let items = self.select_all_cond()?.into_iter().map(to_item).collect();
                 Ok(Response::Items(items))
             }
             Query::AllEntity => {

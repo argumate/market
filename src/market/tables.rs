@@ -1,4 +1,4 @@
-use failure::Error;
+use failure::{Error, err_msg};
 use time::{Timespec, get_time};
 
 use rusqlite;
@@ -6,7 +6,7 @@ use rusqlite::Row;
 use rusqlite::types::{ToSql, ToSqlOutput, FromSql, Value, ValueRef};
 
 use db::TableRow;
-use market::types::{ID, ArgList, User, IOU, Entity, Rel, Pred, Depend};
+use market::types::{ID, ArgList, User, IOU, Cond, Entity, Rel, Pred, Depend};
 
 #[derive(Debug)]
 pub struct MarketRow {
@@ -134,24 +134,32 @@ impl TableRow for Record<IOU> {
             iou_issuer      TEXT NOT NULL REFERENCES user(user_id),
             iou_holder      TEXT NOT NULL REFERENCES user(user_id),
             iou_amount      INTEGER NOT NULL,
+            iou_cond_id     TEXT REFERENCES cond(cond_id),
+            iou_cond_flag   INTEGER NOT NULL,
             creation_time   TEXT NOT NULL
         )";
 
     const INSERT: &'static str =
         "INSERT INTO iou
-            (iou_id, iou_issuer, iou_holder, iou_amount, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5)";
+            (iou_id, iou_issuer, iou_holder, iou_amount, iou_cond_id, iou_cond_flag, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
 
     fn from_row(r: &Row) -> Result<Self, Error> {
         let iou_id = r.get_checked("iou_id")?;
         let iou_issuer = r.get_checked("iou_issuer")?;
         let iou_holder = r.get_checked("iou_holder")?;
         let iou_amount = r.get_checked("iou_amount")?;
+        let iou_cond_id = r.get_checked("iou_cond_id")?;
+        let iou_cond_flag = r.get_checked("iou_cond_flag")?;
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: iou_id,
             fields: IOU {
-                iou_issuer, iou_holder, iou_amount
+                iou_issuer,
+                iou_holder,
+                iou_amount,
+                iou_cond_id,
+                iou_cond_flag
             },
             creation_time
         })
@@ -159,7 +167,60 @@ impl TableRow for Record<IOU> {
 
     fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
     where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&self.id, &self.fields.iou_issuer, &self.fields.iou_holder, &self.fields.iou_amount, &self.creation_time])
+        insert(&[&self.id, &self.fields.iou_issuer, &self.fields.iou_holder, &self.fields.iou_amount, &self.fields.iou_cond_id, &self.fields.iou_cond_flag, &self.creation_time])
+    }
+}
+
+impl TableRow for Record<Cond> {
+    const TABLE_NAME : &'static str = "cond";
+
+    const CREATE_TABLE : &'static str =
+        "CREATE TABLE cond (
+            cond_id         TEXT NOT NULL PRIMARY KEY,
+            cond_pred       TEXT NOT NULL REFERENCES pred(pred_id),
+            cond_arg1       TEXT REFERENCES entity(entity_id),
+            cond_arg2       TEXT REFERENCES entity(entity_id),
+            creation_time   TEXT NOT NULL
+        )";
+
+    const INSERT: &'static str =
+        "INSERT INTO cond
+            (cond_id, cond_pred, cond_arg1, cond_arg2, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5)";
+
+    fn from_row(r: &Row) -> Result<Self, Error> {
+        let cond_id = r.get_checked("cond_id")?;
+        let cond_pred = r.get_checked("cond_pred")?;
+        let cond_arg1 = r.get_checked("cond_arg1")?;
+        let cond_arg2 = r.get_checked("cond_arg2")?;
+        let creation_time = r.get_checked("creation_time")?;
+        let mut cond_args = Vec::new();
+        if let Some(arg1) = cond_arg1 {
+            cond_args.push(arg1);
+            if let Some(arg2) = cond_arg2 {
+                cond_args.push(arg2);
+            }
+        }
+        Ok(Record {
+            id: cond_id,
+            fields: Cond {
+                cond_pred,
+                cond_args
+            },
+            creation_time
+        })
+    }
+
+    fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        let cond_args = &self.fields.cond_args;
+        if cond_args.len() <= 2 {
+            let cond_arg1 = if cond_args.len() > 0 { Some(cond_args[0].clone()) } else { None };
+            let cond_arg2 = if cond_args.len() > 1 { Some(cond_args[1].clone()) } else { None };
+            insert(&[&self.id, &self.fields.cond_pred, &cond_arg1, &cond_arg2, &self.creation_time])
+        } else {
+            Err(err_msg(format!("cond has too many arguments: {}", cond_args.len())))
+        }
     }
 }
 

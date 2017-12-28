@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use market::types::{ID, User, IOU, Entity, Rel, Pred, Depend};
+use market::types::{ID, User, IOU, Cond, Entity, Rel, Pred, Depend};
 
 #[derive(Serialize, Deserialize)]
 pub enum Request {
@@ -13,6 +13,7 @@ pub enum Request {
 pub enum Item {
     User(User),
     IOU(IOU),
+    Cond(Cond),
     Entity(Entity),
     Rel(Rel),
     Pred(Pred),
@@ -23,6 +24,7 @@ pub enum Item {
 pub enum Query {
     AllUser,
     AllIOU,
+    AllCond,
     AllEntity,
     AllRel,
     AllPred,
@@ -48,6 +50,12 @@ impl ToItem for User {
 impl ToItem for IOU {
     fn to_item(self: Self) -> Item {
         Item::IOU(self)
+    }
+}
+
+impl ToItem for Cond {
+    fn to_item(self: Self) -> Item {
+        Item::Cond(self)
     }
 }
 

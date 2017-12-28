@@ -14,7 +14,15 @@ pub struct User {
 pub struct IOU {
     pub iou_issuer: ID,
     pub iou_holder: ID,
-    pub iou_amount: u32
+    pub iou_amount: u32,
+    pub iou_cond_id: Option<ID>,
+    pub iou_cond_flag: bool
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Cond {
+    pub cond_pred: ID,
+    pub cond_args: Vec<ID>
 }
 
 #[derive(Debug, Serialize, Deserialize)]

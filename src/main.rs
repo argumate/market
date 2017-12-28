@@ -20,7 +20,7 @@ use std::env;
 
 use db::DB;
 use market::Market;
-use market::types::{ID, ArgList, User, IOU, Entity, Rel, Pred, Depend};
+use market::types::{ID, ArgList, User, IOU, Cond, Entity, Rel, Pred, Depend};
 use market::msgs::{Request, Response, Item, Query};
 
 enum CmdLine {
@@ -114,13 +114,6 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     user_name: String::from("Mr Bar")
                 })))?.unwrap_id();
 
-            market.do_request(Request::Create(
-                Item::IOU(IOU {
-                    iou_issuer: mrfoo,
-                    iou_holder: mrbar,
-                    iou_amount: 17
-                })))?;
-
             let trump = market.do_request(Request::Create(
                 Item::Entity(Entity {
                     entity_name: String::from("Donald Trump"),
@@ -155,7 +148,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
             market.do_request(Request::Create(
                 Item::Rel(Rel {
                     rel_type: String::from("party"),
-                    rel_from: trump,
+                    rel_from: trump.clone(),
                     rel_to: repub,
                 })))?;
 
@@ -193,7 +186,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
             market.do_request(Request::Create(
                 Item::Depend(Depend {
                     depend_type: String::from("implies"),
-                    depend_pred1: candidate2020,
+                    depend_pred1: candidate2020.clone(),
                     depend_pred2: party2020,
                     depend_vars: ArgList::from("x"),
                     depend_args1: ArgList::from("x"),
@@ -206,6 +199,21 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     pred_args: ArgList::from("time"),
                     pred_value: None
                 })))?;
+            
+            let trump_elected = market.do_request(Request::Create(
+                Item::Cond(Cond {
+                    cond_pred: candidate2020.clone(),
+                    cond_args: vec![trump.clone()],
+                })))?.unwrap_id();
+            
+            market.do_request(Request::Create(
+                Item::IOU(IOU {
+                    iou_issuer: mrfoo,
+                    iou_holder: mrbar,
+                    iou_amount: 17,
+                    iou_cond_id: Some(trump_elected),
+                    iou_cond_flag: true
+                })))?;
 
             Ok(())
         }
@@ -215,6 +223,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
             println!("{:?}", market.info);
             print_response(&market.do_request(Request::Query(Query::AllUser))?);
             print_response(&market.do_request(Request::Query(Query::AllIOU))?);
+            print_response(&market.do_request(Request::Query(Query::AllCond))?);
             print_response(&market.do_request(Request::Query(Query::AllEntity))?);
             print_response(&market.do_request(Request::Query(Query::AllRel))?);
             print_response(&market.do_request(Request::Query(Query::AllPred))?);

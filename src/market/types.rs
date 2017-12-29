@@ -1,6 +1,10 @@
+use time::Timespec;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct ID(pub String);
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Timesecs(i64);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ArgList(Vec<String>);
@@ -16,7 +20,8 @@ pub struct IOU {
     pub iou_holder: ID,
     pub iou_amount: u32,
     pub iou_cond_id: Option<ID>,
-    pub iou_cond_flag: bool
+    pub iou_cond_flag: bool,
+    pub iou_cond_time: Option<Timesecs>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,6 +68,24 @@ pub struct Depend {
     pub depend_vars: ArgList,
     pub depend_args1: ArgList,
     pub depend_args2: ArgList
+}
+
+impl<'a> From<&'a Timesecs> for Timespec {
+    fn from(t: &Timesecs) -> Timespec {
+        Timespec::new(t.0, 0)
+    }
+}
+
+impl<'a> From<&'a Timesecs> for i64 {
+    fn from(t: &Timesecs) -> i64 {
+        t.0
+    }
+}
+
+impl From<i64> for Timesecs {
+    fn from(t: i64) -> Timesecs {
+        Timesecs(t)
+    }
 }
 
 impl<'a> From<&'a ArgList> for String {

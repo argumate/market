@@ -222,7 +222,8 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     iou_holder: mrbar,
                     iou_amount: 17,
                     iou_cond_id: Some(trump_elected),
-                    iou_cond_flag: true
+                    iou_cond_flag: true,
+                    iou_cond_time: None
                 })))?;
 
             Ok(())

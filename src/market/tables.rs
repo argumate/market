@@ -6,7 +6,7 @@ use rusqlite::Row;
 use rusqlite::types::{ToSql, ToSqlOutput, FromSql, Value, ValueRef};
 
 use db::TableRow;
-use market::types::{ID, ArgList, User, IOU, Cond, Offer, Entity, Rel, Pred, Depend};
+use market::types::{ID, Timesecs, ArgList, User, IOU, Cond, Offer, Entity, Rel, Pred, Depend};
 
 #[derive(Debug)]
 pub struct MarketRow {
@@ -24,6 +24,19 @@ impl FromSql for ID {
     fn column_result(value: ValueRef) -> rusqlite::types::FromSqlResult<Self> {
         let s = FromSql::column_result(value)?;
         Ok(ID(s))
+    }
+}
+
+impl ToSql for Timesecs {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput> {
+        Ok(ToSqlOutput::Owned(Value::Integer(i64::from(self))))
+    }
+}
+
+impl FromSql for Timesecs {
+    fn column_result(value: ValueRef) -> rusqlite::types::FromSqlResult<Self> {
+        let i : i64 = FromSql::column_result(value)?;
+        Ok(Timesecs::from(i))
     }
 }
 
@@ -136,13 +149,14 @@ impl TableRow for Record<IOU> {
             iou_amount      INTEGER NOT NULL,
             iou_cond_id     TEXT REFERENCES cond(cond_id),
             iou_cond_flag   INTEGER NOT NULL,
+            iou_cond_time   INTEGER,
             creation_time   TEXT NOT NULL
         )";
 
     const INSERT: &'static str =
         "INSERT INTO iou
-            (iou_id, iou_issuer, iou_holder, iou_amount, iou_cond_id, iou_cond_flag, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
+            (iou_id, iou_issuer, iou_holder, iou_amount, iou_cond_id, iou_cond_flag, iou_cond_time, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
 
     fn from_row(r: &Row) -> Result<Self, Error> {
         let iou_id = r.get_checked("iou_id")?;
@@ -151,6 +165,7 @@ impl TableRow for Record<IOU> {
         let iou_amount = r.get_checked("iou_amount")?;
         let iou_cond_id = r.get_checked("iou_cond_id")?;
         let iou_cond_flag = r.get_checked("iou_cond_flag")?;
+        let iou_cond_time = r.get_checked("iou_cond_time")?;
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: iou_id,
@@ -159,7 +174,8 @@ impl TableRow for Record<IOU> {
                 iou_holder,
                 iou_amount,
                 iou_cond_id,
-                iou_cond_flag
+                iou_cond_flag,
+                iou_cond_time
             },
             creation_time
         })
@@ -167,7 +183,16 @@ impl TableRow for Record<IOU> {
 
     fn do_insert<F>(self: &Self, insert: F) -> Result<(), Error>
     where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&self.id, &self.fields.iou_issuer, &self.fields.iou_holder, &self.fields.iou_amount, &self.fields.iou_cond_id, &self.fields.iou_cond_flag, &self.creation_time])
+        insert(&[
+            &self.id,
+            &self.fields.iou_issuer,
+            &self.fields.iou_holder,
+            &self.fields.iou_amount,
+            &self.fields.iou_cond_id,
+            &self.fields.iou_cond_flag,
+            &self.fields.iou_cond_time,
+            &self.creation_time
+        ])
     }
 }
 

@@ -256,24 +256,26 @@ impl TableRow for Record<Offer> {
         "CREATE TABLE offer (
             offer_id            TEXT NOT NULL PRIMARY KEY,
             offer_user          TEXT NOT NULL REFERENCES user(user_id),
-            offer_cond          TEXT NOT NULL REFERENCES cond(cond_id),
+            offer_cond_id       TEXT NOT NULL REFERENCES cond(cond_id),
+            offer_cond_time     INTEGER,
             offer_buy_price     INTEGER NOT NULL,
             offer_sell_price    INTEGER NOT NULL,
             offer_buy_amount    INTEGER NOT NULL,
             offer_sell_amount   INTEGER NOT NULL,
             creation_time       TEXT NOT NULL,
-            UNIQUE(offer_user, offer_cond)
+            UNIQUE(offer_user, offer_cond_id, offer_cond_time)
         )";
 
     const INSERT: &'static str =
         "INSERT INTO offer
-            (offer_id, offer_user, offer_cond, offer_buy_price, offer_sell_price, offer_buy_amount, offer_sell_amount, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
+            (offer_id, offer_user, offer_cond_id, offer_cond_time, offer_buy_price, offer_sell_price, offer_buy_amount, offer_sell_amount, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)";
 
     fn from_row(r: &Row) -> Result<Self, Error> {
         let offer_id = r.get_checked("offer_id")?;
         let offer_user = r.get_checked("offer_user")?;
-        let offer_cond = r.get_checked("offer_cond")?;
+        let offer_cond_id = r.get_checked("offer_cond_id")?;
+        let offer_cond_time = r.get_checked("offer_cond_time")?;
         let offer_buy_price = r.get_checked("offer_buy_price")?;
         let offer_sell_price = r.get_checked("offer_sell_price")?;
         let offer_buy_amount = r.get_checked("offer_buy_amount")?;
@@ -283,7 +285,8 @@ impl TableRow for Record<Offer> {
             id: offer_id,
             fields: Offer {
                 offer_user,
-                offer_cond,
+                offer_cond_id,
+                offer_cond_time,
                 offer_buy_price,
                 offer_sell_price,
                 offer_buy_amount,
@@ -298,7 +301,8 @@ impl TableRow for Record<Offer> {
         insert(&[
             &self.id,
             &self.fields.offer_user,
-            &self.fields.offer_cond,
+            &self.fields.offer_cond_id,
+            &self.fields.offer_cond_time,
             &self.fields.offer_buy_price,
             &self.fields.offer_sell_price,
             &self.fields.offer_buy_amount,

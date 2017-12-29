@@ -209,7 +209,8 @@ fn do_command(cmd: Command) -> Result<(), Error> {
             market.do_request(Request::Create(
                 Item::Offer(Offer {
                     offer_user: mrfoo.clone(),
-                    offer_cond: trump_elected.clone(),
+                    offer_cond_id: trump_elected.clone(),
+                    offer_cond_time: None,
                     offer_buy_price: 34,
                     offer_sell_price: 45,
                     offer_buy_amount: 100,

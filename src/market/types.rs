@@ -33,7 +33,8 @@ pub struct Cond {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Offer {
     pub offer_user: ID,
-    pub offer_cond: ID,
+    pub offer_cond_id: ID,
+    pub offer_cond_time: Option<Timesecs>,
     pub offer_buy_price: u32,
     pub offer_sell_price: u32,
     pub offer_buy_amount: u32,

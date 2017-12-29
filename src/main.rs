@@ -210,8 +210,10 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                 Item::Offer(Offer {
                     offer_user: mrfoo.clone(),
                     offer_cond: trump_elected.clone(),
-                    offer_buy: 34,
-                    offer_sell: 45
+                    offer_buy_price: 34,
+                    offer_sell_price: 45,
+                    offer_buy_amount: 100,
+                    offer_sell_amount: 200
                 })))?.unwrap_id();
 
             market.do_request(Request::Create(

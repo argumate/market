@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use failure::Error;
 use time::get_time;
 use uuid::Uuid;
@@ -7,9 +8,9 @@ pub mod msgs;
 mod tables;
 
 use db::DB;
-use market::types::{ID, User, IOU, Cond, Entity, Rel, Pred, Depend};
-use market::tables::{MarketRow, Record, PropRow, MarketTable, UserTable, IOUTable, CondTable, OfferTable, EntityTable, RelTable, PropTable, PredTable, DependTable};
-use market::msgs::{Request, Response, Query, Item, ToItem};
+use market::types::{ID, User, IOU, Cond, OfferUpdate, Entity, Rel, Pred, Depend};
+use market::tables::{MarketRow, Record, Update, PropRow, MarketTable, UserTable, IOUTable, CondTable, OfferTable, EntityTable, RelTable, PropTable, PredTable, DependTable};
+use market::msgs::{Request, Response, Query, Item, ItemUpdate, ToItem};
 
 pub struct Market {
     db: DB,
@@ -133,6 +134,19 @@ impl Market {
         }
     }
 
+    pub fn do_update(self: &mut Self, items: HashMap<ID, ItemUpdate>) -> Result<Response, Error> {
+        for (id, item) in items {
+            match item {
+                ItemUpdate::Offer(offer) => {
+                    // FIXME access control
+                    self.db.update_row::<OfferTable, Update<OfferUpdate>>(
+                        &Update { id: id, fields: offer })?;
+                }
+            }
+        }
+        Ok(Response::Updated)
+    }
+
     pub fn do_query(self: &mut Self, query: Query) -> Result<Response, Error> {
         fn to_item<T: ToItem>(record: Record<T>) -> (ID, Item) {
             (record.id, record.fields.to_item())
@@ -185,6 +199,7 @@ impl Market {
     pub fn do_request(self: &mut Self, request: Request) -> Result<Response, Error> {
         match request {
             Request::Create(item) => self.do_create(item),
+            Request::Update(items) => self.do_update(items),
             Request::Query(query) => self.do_query(query)
         }
     }

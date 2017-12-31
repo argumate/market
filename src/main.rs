@@ -14,14 +14,15 @@ extern crate uuid;
 pub mod db;
 pub mod market;
 
+use std::collections::HashMap;
 use failure::Error;
 use getopts::Options;
 use std::env;
 
 use db::DB;
 use market::Market;
-use market::types::{ID, ArgList, User, IOU, Cond, Offer, Entity, Rel, Pred, Depend};
-use market::msgs::{Request, Response, Item, Query};
+use market::types::{ID, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
+use market::msgs::{Request, Response, Query, Item, ItemUpdate};
 
 enum CmdLine {
     Help,
@@ -93,6 +94,7 @@ impl Response {
     fn unwrap_id(self: Response) -> ID {
         match self {
             Response::Created(id) => id,
+            Response::Updated => panic!("expected ID!"),
             Response::Items(_) => panic!("expected ID!")
         }
     }
@@ -206,7 +208,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     cond_args: vec![trump.clone()],
                 })))?.unwrap_id();
 
-            market.do_request(Request::Create(
+            let offer_id = market.do_request(Request::Create(
                 Item::Offer(Offer {
                     offer_user: mrfoo.clone(),
                     offer_cond_id: trump_elected.clone(),
@@ -216,6 +218,17 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     offer_buy_amount: 100,
                     offer_sell_amount: 200
                 })))?.unwrap_id();
+
+            let mut us = HashMap::new();
+            us.insert(offer_id,
+                ItemUpdate::Offer(OfferUpdate {
+                    offer_buy_price: 36,
+                    offer_sell_price: 43,
+                    offer_buy_amount: 150,
+                    offer_sell_amount: 180
+                }));
+
+            market.do_request(Request::Update(us))?;
 
             market.do_request(Request::Create(
                 Item::IOU(IOU {

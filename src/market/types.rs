@@ -42,6 +42,14 @@ pub struct Offer {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct OfferUpdate {
+    pub offer_buy_price: u32,
+    pub offer_sell_price: u32,
+    pub offer_buy_amount: u32,
+    pub offer_sell_amount: u32
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Entity {
     pub entity_name: String,
     pub entity_type: String

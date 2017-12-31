@@ -5,8 +5,8 @@ use rusqlite;
 use rusqlite::Row;
 use rusqlite::types::{ToSql, ToSqlOutput, FromSql, Value, ValueRef};
 
-use db::Table;
-use market::types::{ID, Timesecs, ArgList, User, IOU, Cond, Offer, Entity, Rel, Pred, Depend};
+use db::{Table, TableUpdate};
+use market::types::{ID, Timesecs, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
 
 pub struct MarketTable { }
 pub struct UserTable { }
@@ -79,6 +79,12 @@ impl<T> Record<T> {
             creation_time: get_time()
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Update<T> {
+    pub id: ID,
+    pub fields: T
 }
 
 #[derive(Debug)]
@@ -324,6 +330,20 @@ impl Table for OfferTable {
             &r.fields.offer_buy_amount,
             &r.fields.offer_sell_amount,
             &r.creation_time])
+    }
+}
+
+impl TableUpdate<Update<OfferUpdate>> for OfferTable {
+    const UPDATE : &'static str =
+        "offer_buy_price = ?2, offer_sell_price = ?3,
+        offer_buy_amount = ?4, offer_sell_amount = ?5
+        WHERE offer_id = ?1";
+
+    fn do_update<F>(r: &Update<OfferUpdate>, update: F) -> Result<(), Error>
+    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+        update(&[&r.id,
+            &r.fields.offer_buy_price, &r.fields.offer_sell_price,
+            &r.fields.offer_buy_amount, &r.fields.offer_sell_amount])
     }
 }
 

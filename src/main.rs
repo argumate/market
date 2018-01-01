@@ -215,8 +215,8 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     offer_cond_time: None,
                     offer_buy_price: 34,
                     offer_sell_price: 45,
-                    offer_buy_amount: 100,
-                    offer_sell_amount: 200
+                    offer_buy_quantity: 100,
+                    offer_sell_quantity: 200
                 })))?.unwrap_id();
 
             let mut us = HashMap::new();
@@ -224,8 +224,8 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                 ItemUpdate::Offer(OfferUpdate {
                     offer_buy_price: 36,
                     offer_sell_price: 43,
-                    offer_buy_amount: 150,
-                    offer_sell_amount: 180
+                    offer_buy_quantity: 150,
+                    offer_sell_quantity: 180
                 }));
 
             market.do_request(Request::Update(us))?;
@@ -234,7 +234,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                 Item::IOU(IOU {
                     iou_issuer: mrfoo,
                     iou_holder: mrbar,
-                    iou_amount: 17,
+                    iou_value: 17,
                     iou_cond_id: Some(trump_elected),
                     iou_cond_flag: true,
                     iou_cond_time: None

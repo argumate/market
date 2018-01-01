@@ -18,7 +18,7 @@ pub struct User {
 pub struct IOU {
     pub iou_issuer: ID,
     pub iou_holder: ID,
-    pub iou_amount: u32,
+    pub iou_value: u32,
     pub iou_cond_id: Option<ID>,
     pub iou_cond_flag: bool,
     pub iou_cond_time: Option<Timesecs>
@@ -37,16 +37,16 @@ pub struct Offer {
     pub offer_cond_time: Option<Timesecs>,
     pub offer_buy_price: u32,
     pub offer_sell_price: u32,
-    pub offer_buy_amount: u32,
-    pub offer_sell_amount: u32
+    pub offer_buy_quantity: u32,
+    pub offer_sell_quantity: u32
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OfferUpdate {
     pub offer_buy_price: u32,
     pub offer_sell_price: u32,
-    pub offer_buy_amount: u32,
-    pub offer_sell_amount: u32
+    pub offer_buy_quantity: u32,
+    pub offer_sell_quantity: u32
 }
 
 #[derive(Debug, Serialize, Deserialize)]

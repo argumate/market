@@ -167,7 +167,7 @@ impl Table for IOUTable {
             iou_id          TEXT NOT NULL PRIMARY KEY,
             iou_issuer      TEXT NOT NULL REFERENCES user(user_id),
             iou_holder      TEXT NOT NULL REFERENCES user(user_id),
-            iou_amount      INTEGER NOT NULL,
+            iou_value       INTEGER NOT NULL,
             iou_cond_id     TEXT REFERENCES cond(cond_id),
             iou_cond_flag   INTEGER NOT NULL,
             iou_cond_time   INTEGER,
@@ -175,14 +175,14 @@ impl Table for IOUTable {
         )";
 
     const INSERT: &'static str =
-        "(iou_id, iou_issuer, iou_holder, iou_amount, iou_cond_id, iou_cond_flag, iou_cond_time, creation_time)
+        "(iou_id, iou_issuer, iou_holder, iou_value, iou_cond_id, iou_cond_flag, iou_cond_time, creation_time)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
 
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let iou_id = r.get_checked("iou_id")?;
         let iou_issuer = r.get_checked("iou_issuer")?;
         let iou_holder = r.get_checked("iou_holder")?;
-        let iou_amount = r.get_checked("iou_amount")?;
+        let iou_value = r.get_checked("iou_value")?;
         let iou_cond_id = r.get_checked("iou_cond_id")?;
         let iou_cond_flag = r.get_checked("iou_cond_flag")?;
         let iou_cond_time = r.get_checked("iou_cond_time")?;
@@ -192,7 +192,7 @@ impl Table for IOUTable {
             fields: IOU {
                 iou_issuer,
                 iou_holder,
-                iou_amount,
+                iou_value,
                 iou_cond_id,
                 iou_cond_flag,
                 iou_cond_time
@@ -207,7 +207,7 @@ impl Table for IOUTable {
             &r.id,
             &r.fields.iou_issuer,
             &r.fields.iou_holder,
-            &r.fields.iou_amount,
+            &r.fields.iou_value,
             &r.fields.iou_cond_id,
             &r.fields.iou_cond_flag,
             &r.fields.iou_cond_time,
@@ -283,14 +283,14 @@ impl Table for OfferTable {
             offer_cond_time     INTEGER,
             offer_buy_price     INTEGER NOT NULL,
             offer_sell_price    INTEGER NOT NULL,
-            offer_buy_amount    INTEGER NOT NULL,
-            offer_sell_amount   INTEGER NOT NULL,
+            offer_buy_quantity    INTEGER NOT NULL,
+            offer_sell_quantity   INTEGER NOT NULL,
             creation_time       TEXT NOT NULL,
             UNIQUE(offer_user, offer_cond_id, offer_cond_time)
         )";
 
     const INSERT: &'static str =
-        "(offer_id, offer_user, offer_cond_id, offer_cond_time, offer_buy_price, offer_sell_price, offer_buy_amount, offer_sell_amount, creation_time)
+        "(offer_id, offer_user, offer_cond_id, offer_cond_time, offer_buy_price, offer_sell_price, offer_buy_quantity, offer_sell_quantity, creation_time)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)";
 
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
@@ -300,8 +300,8 @@ impl Table for OfferTable {
         let offer_cond_time = r.get_checked("offer_cond_time")?;
         let offer_buy_price = r.get_checked("offer_buy_price")?;
         let offer_sell_price = r.get_checked("offer_sell_price")?;
-        let offer_buy_amount = r.get_checked("offer_buy_amount")?;
-        let offer_sell_amount = r.get_checked("offer_sell_amount")?;
+        let offer_buy_quantity = r.get_checked("offer_buy_quantity")?;
+        let offer_sell_quantity = r.get_checked("offer_sell_quantity")?;
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: offer_id,
@@ -311,8 +311,8 @@ impl Table for OfferTable {
                 offer_cond_time,
                 offer_buy_price,
                 offer_sell_price,
-                offer_buy_amount,
-                offer_sell_amount
+                offer_buy_quantity,
+                offer_sell_quantity
             },
             creation_time
         })
@@ -327,8 +327,8 @@ impl Table for OfferTable {
             &r.fields.offer_cond_time,
             &r.fields.offer_buy_price,
             &r.fields.offer_sell_price,
-            &r.fields.offer_buy_amount,
-            &r.fields.offer_sell_amount,
+            &r.fields.offer_buy_quantity,
+            &r.fields.offer_sell_quantity,
             &r.creation_time])
     }
 }
@@ -336,14 +336,14 @@ impl Table for OfferTable {
 impl TableUpdate<Update<OfferUpdate>> for OfferTable {
     const UPDATE : &'static str =
         "offer_buy_price = ?2, offer_sell_price = ?3,
-        offer_buy_amount = ?4, offer_sell_amount = ?5
+        offer_buy_quantity = ?4, offer_sell_quantity = ?5
         WHERE offer_id = ?1";
 
     fn do_update<F>(r: &Update<OfferUpdate>, update: F) -> Result<(), Error>
     where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
         update(&[&r.id,
             &r.fields.offer_buy_price, &r.fields.offer_sell_price,
-            &r.fields.offer_buy_amount, &r.fields.offer_sell_amount])
+            &r.fields.offer_buy_quantity, &r.fields.offer_sell_quantity])
     }
 }
 

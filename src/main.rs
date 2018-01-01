@@ -21,7 +21,7 @@ use std::env;
 
 use db::DB;
 use market::Market;
-use market::types::{ID, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
+use market::types::{ID, Dollars, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
 use market::msgs::{Request, Response, Query, Item, ItemUpdate};
 
 enum CmdLine {
@@ -213,8 +213,8 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     offer_user: mrfoo.clone(),
                     offer_cond_id: trump_elected.clone(),
                     offer_cond_time: None,
-                    offer_buy_price: 34,
-                    offer_sell_price: 45,
+                    offer_buy_price: Dollars::from_millibucks(340),
+                    offer_sell_price: Dollars::from_millibucks(450),
                     offer_buy_quantity: 100,
                     offer_sell_quantity: 200
                 })))?.unwrap_id();
@@ -222,8 +222,8 @@ fn do_command(cmd: Command) -> Result<(), Error> {
             let mut us = HashMap::new();
             us.insert(offer_id,
                 ItemUpdate::Offer(OfferUpdate {
-                    offer_buy_price: 36,
-                    offer_sell_price: 43,
+                    offer_buy_price: Dollars::from_millibucks(360),
+                    offer_sell_price: Dollars::from_millibucks(430),
                     offer_buy_quantity: 150,
                     offer_sell_quantity: 180
                 }));
@@ -234,7 +234,7 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                 Item::IOU(IOU {
                     iou_issuer: mrfoo,
                     iou_holder: mrbar,
-                    iou_value: 17,
+                    iou_value: Dollars::from_millibucks(170),
                     iou_cond_id: Some(trump_elected),
                     iou_cond_flag: true,
                     iou_cond_time: None

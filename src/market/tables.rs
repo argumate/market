@@ -6,7 +6,7 @@ use rusqlite::Row;
 use rusqlite::types::{ToSql, ToSqlOutput, FromSql, Value, ValueRef};
 
 use db::{Table, TableUpdate};
-use market::types::{ID, Timesecs, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
+use market::types::{ID, Dollars, Timesecs, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
 
 pub struct MarketTable { }
 pub struct UserTable { }
@@ -48,6 +48,19 @@ impl FromSql for Timesecs {
     fn column_result(value: ValueRef) -> rusqlite::types::FromSqlResult<Self> {
         let i : i64 = FromSql::column_result(value)?;
         Ok(Timesecs::from(i))
+    }
+}
+
+impl ToSql for Dollars {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput> {
+        Ok(ToSqlOutput::Owned(Value::Integer(self.to_millibucks())))
+    }
+}
+
+impl FromSql for Dollars {
+    fn column_result(value: ValueRef) -> rusqlite::types::FromSqlResult<Self> {
+        let i : i64 = FromSql::column_result(value)?;
+        Ok(Dollars::from_millibucks(i))
     }
 }
 

@@ -4,6 +4,11 @@ use time::Timespec;
 pub struct ID(pub String);
 
 #[derive(Debug, Serialize, Deserialize)]
+/// measured in millidollars
+pub struct Dollars(i64);
+
+#[derive(Debug, Serialize, Deserialize)]
+/// UNIX time, seconds since 1970
 pub struct Timesecs(i64);
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -18,7 +23,7 @@ pub struct User {
 pub struct IOU {
     pub iou_issuer: ID,
     pub iou_holder: ID,
-    pub iou_value: u32,
+    pub iou_value: Dollars,
     pub iou_cond_id: Option<ID>,
     pub iou_cond_flag: bool,
     pub iou_cond_time: Option<Timesecs>
@@ -35,16 +40,16 @@ pub struct Offer {
     pub offer_user: ID,
     pub offer_cond_id: ID,
     pub offer_cond_time: Option<Timesecs>,
-    pub offer_buy_price: u32,
-    pub offer_sell_price: u32,
+    pub offer_buy_price: Dollars,
+    pub offer_sell_price: Dollars,
     pub offer_buy_quantity: u32,
     pub offer_sell_quantity: u32
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OfferUpdate {
-    pub offer_buy_price: u32,
-    pub offer_sell_price: u32,
+    pub offer_buy_price: Dollars,
+    pub offer_sell_price: Dollars,
     pub offer_buy_quantity: u32,
     pub offer_sell_quantity: u32
 }
@@ -77,6 +82,16 @@ pub struct Depend {
     pub depend_vars: ArgList,
     pub depend_args1: ArgList,
     pub depend_args2: ArgList
+}
+
+impl Dollars {
+    pub fn from_millibucks(m: i64) -> Self {
+        Dollars(m)
+    }
+
+    pub fn to_millibucks(self: &Self) -> i64 {
+        self.0
+    }
 }
 
 impl<'a> From<&'a Timesecs> for Timespec {

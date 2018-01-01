@@ -237,7 +237,8 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     iou_value: Dollars::from_millibucks(170),
                     iou_cond_id: Some(trump_elected),
                     iou_cond_flag: true,
-                    iou_cond_time: None
+                    iou_cond_time: None,
+                    iou_void: false
                 })))?;
 
             Ok(())

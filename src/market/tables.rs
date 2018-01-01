@@ -199,6 +199,7 @@ impl Table for IOUTable {
         let iou_cond_id = r.get_checked("iou_cond_id")?;
         let iou_cond_flag = r.get_checked("iou_cond_flag")?;
         let iou_cond_time = r.get_checked("iou_cond_time")?;
+        let iou_void = r.get_checked("iou_void")?;
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: iou_id,
@@ -208,7 +209,8 @@ impl Table for IOUTable {
                 iou_value,
                 iou_cond_id,
                 iou_cond_flag,
-                iou_cond_time
+                iou_cond_time,
+                iou_void
             },
             creation_time
         })
@@ -224,6 +226,7 @@ impl Table for IOUTable {
             &r.fields.iou_cond_id,
             &r.fields.iou_cond_flag,
             &r.fields.iou_cond_time,
+            &r.fields.iou_void,
             &r.creation_time
         ])
     }

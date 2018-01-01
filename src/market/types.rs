@@ -26,7 +26,8 @@ pub struct IOU {
     pub iou_value: Dollars,
     pub iou_cond_id: Option<ID>,
     pub iou_cond_flag: bool,
-    pub iou_cond_time: Option<Timesecs>
+    pub iou_cond_time: Option<Timesecs>,
+    pub iou_void: bool
 }
 
 #[derive(Debug, Serialize, Deserialize)]

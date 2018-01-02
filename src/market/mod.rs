@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use failure::Error;
 use time::get_time;
 use uuid::Uuid;
+use rusqlite::Connection;
 
 pub mod types;
 pub mod msgs;
@@ -13,12 +14,12 @@ use market::tables::{MarketRow, Record, Update, PropRow, MarketTable, UserTable,
 use market::msgs::{Request, Response, Query, Item, ItemUpdate, ToItem};
 
 pub struct Market {
-    db: DB,
+    db: Connection,
     pub info: MarketRow
 }
 
 impl Market {
-    pub fn create_new(mut db: DB) -> Result<Market, Error> {
+    pub fn create_new(db: Connection) -> Result<Market, Error> {
         db.create_table::<MarketTable>()?;
         db.create_table::<UserTable>()?;
         db.create_table::<IOUTable>()?;
@@ -36,7 +37,7 @@ impl Market {
         Ok(Market { db: db, info: info })
     }
 
-    pub fn open_existing(mut db: DB) -> Result<Market, Error> {
+    pub fn open_existing(db: Connection) -> Result<Market, Error> {
         let info = db.select_one::<MarketTable>()?;
         Ok(Market { db: db, info: info })
     }

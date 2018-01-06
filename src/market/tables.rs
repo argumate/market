@@ -184,12 +184,13 @@ impl Table for IOUTable {
             iou_cond_id     TEXT REFERENCES cond(cond_id),
             iou_cond_flag   INTEGER NOT NULL,
             iou_cond_time   INTEGER,
+            iou_void        BOOLEAN,
             creation_time   TEXT NOT NULL
         )";
 
     const INSERT: &'static str =
-        "(iou_id, iou_issuer, iou_holder, iou_value, iou_cond_id, iou_cond_flag, iou_cond_time, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
+        "(iou_id, iou_issuer, iou_holder, iou_value, iou_cond_id, iou_cond_flag, iou_cond_time, iou_void, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)";
 
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let iou_id = r.get_checked("iou_id")?;

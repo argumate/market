@@ -5,7 +5,7 @@ use rusqlite;
 use rusqlite::Row;
 use rusqlite::types::{ToSql, ToSqlOutput, FromSql, Value, ValueRef};
 
-use db::{Table, TableUpdate};
+use db::{Table, Update, Select};
 use market::types::{ID, Dollars, Timesecs, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
 
 pub struct MarketTable { }
@@ -95,12 +95,6 @@ impl<T> Record<T> {
 }
 
 #[derive(Debug)]
-pub struct Update<T> {
-    pub id: ID,
-    pub fields: T
-}
-
-#[derive(Debug)]
 pub struct PropRow {
     pub entity_id: ID,
     pub prop_id: String,
@@ -119,19 +113,17 @@ impl Table for MarketTable {
             creation_time   TEXT NOT NULL
         )";
 
-    const INSERT: &'static str =
-        "(version, creation_time)
-            VALUES (?1, ?2)";
-
     fn from_row(r: &Row) -> Result<MarketRow, Error> {
         let version = r.get_checked("version")?;
         let creation_time = r.get_checked("creation_time")?;
         Ok(MarketRow { version, creation_time })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&r.version, &r.creation_time])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(version, creation_time)
+            VALUES (?1, ?2)",
+            &[&r.version, &r.creation_time])
     }
 }
 
@@ -147,10 +139,6 @@ impl Table for UserTable {
             creation_time   TEXT NOT NULL
         )";
 
-    const INSERT: &'static str =
-        "(user_id, user_name, creation_time)
-            VALUES (?1, ?2, ?3)";
-
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let user_id = r.get_checked("user_id")?;
         let user_name = r.get_checked("user_name")?;
@@ -164,9 +152,17 @@ impl Table for UserTable {
         })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&r.id, &r.fields.user_name, &r.creation_time])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(user_id, user_name, creation_time)
+            VALUES (?1, ?2, ?3)",
+            &[&r.id, &r.fields.user_name, &r.creation_time])
+    }
+}
+
+impl<'a> Select<'a, UserTable> {
+    pub fn by_user_name(self: &Self, user_name: &str) -> Result<Record<User>, Error> {
+        self.one_where("user_name = ?1", &[&user_name])
     }
 }
 
@@ -187,10 +183,6 @@ impl Table for IOUTable {
             iou_void        BOOLEAN,
             creation_time   TEXT NOT NULL
         )";
-
-    const INSERT: &'static str =
-        "(iou_id, iou_issuer, iou_holder, iou_value, iou_cond_id, iou_cond_flag, iou_cond_time, iou_void, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)";
 
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let iou_id = r.get_checked("iou_id")?;
@@ -217,19 +209,21 @@ impl Table for IOUTable {
         })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[
-            &r.id,
-            &r.fields.iou_issuer,
-            &r.fields.iou_holder,
-            &r.fields.iou_value,
-            &r.fields.iou_cond_id,
-            &r.fields.iou_cond_flag,
-            &r.fields.iou_cond_time,
-            &r.fields.iou_void,
-            &r.creation_time
-        ])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(iou_id, iou_issuer, iou_holder, iou_value, iou_cond_id, iou_cond_flag, iou_cond_time, iou_void, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            &[
+                &r.id,
+                &r.fields.iou_issuer,
+                &r.fields.iou_holder,
+                &r.fields.iou_value,
+                &r.fields.iou_cond_id,
+                &r.fields.iou_cond_flag,
+                &r.fields.iou_cond_time,
+                &r.fields.iou_void,
+                &r.creation_time
+            ])
     }
 }
 
@@ -246,10 +240,6 @@ impl Table for CondTable {
             cond_arg2       TEXT REFERENCES entity(entity_id),
             creation_time   TEXT NOT NULL
         )";
-
-    const INSERT: &'static str =
-        "(cond_id, cond_pred, cond_arg1, cond_arg2, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5)";
 
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let cond_id = r.get_checked("cond_id")?;
@@ -274,13 +264,15 @@ impl Table for CondTable {
         })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
         let cond_args = &r.fields.cond_args;
         if cond_args.len() <= 2 {
             let cond_arg1 = if cond_args.len() > 0 { Some(cond_args[0].clone()) } else { None };
             let cond_arg2 = if cond_args.len() > 1 { Some(cond_args[1].clone()) } else { None };
-            insert(&[&r.id, &r.fields.cond_pred, &cond_arg1, &cond_arg2, &r.creation_time])
+            table.insert(
+                "(cond_id, cond_pred, cond_arg1, cond_arg2, creation_time)
+                VALUES (?1, ?2, ?3, ?4, ?5)",
+                &[&r.id, &r.fields.cond_pred, &cond_arg1, &cond_arg2, &r.creation_time])
         } else {
             Err(err_msg(format!("cond has too many arguments: {}", cond_args.len())))
         }
@@ -305,10 +297,6 @@ impl Table for OfferTable {
             creation_time       TEXT NOT NULL,
             UNIQUE(offer_user, offer_cond_id, offer_cond_time)
         )";
-
-    const INSERT: &'static str =
-        "(offer_id, offer_user, offer_cond_id, offer_cond_time, offer_buy_price, offer_sell_price, offer_buy_quantity, offer_sell_quantity, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)";
 
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let offer_id = r.get_checked("offer_id")?;
@@ -335,32 +323,33 @@ impl Table for OfferTable {
         })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[
-            &r.id,
-            &r.fields.offer_user,
-            &r.fields.offer_cond_id,
-            &r.fields.offer_cond_time,
-            &r.fields.offer_buy_price,
-            &r.fields.offer_sell_price,
-            &r.fields.offer_buy_quantity,
-            &r.fields.offer_sell_quantity,
-            &r.creation_time])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(offer_id, offer_user, offer_cond_id, offer_cond_time, offer_buy_price, offer_sell_price, offer_buy_quantity, offer_sell_quantity, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            &[
+                &r.id,
+                &r.fields.offer_user,
+                &r.fields.offer_cond_id,
+                &r.fields.offer_cond_time,
+                &r.fields.offer_buy_price,
+                &r.fields.offer_sell_price,
+                &r.fields.offer_buy_quantity,
+                &r.fields.offer_sell_quantity,
+                &r.creation_time
+            ])
     }
 }
 
-impl TableUpdate<Update<OfferUpdate>> for OfferTable {
-    const UPDATE : &'static str =
-        "offer_buy_price = ?2, offer_sell_price = ?3,
-        offer_buy_quantity = ?4, offer_sell_quantity = ?5
-        WHERE offer_id = ?1";
-
-    fn do_update<F>(r: &Update<OfferUpdate>, update: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        update(&[&r.id,
-            &r.fields.offer_buy_price, &r.fields.offer_sell_price,
-            &r.fields.offer_buy_quantity, &r.fields.offer_sell_quantity])
+impl<'a> Update<'a, OfferTable> {
+    pub fn update_offer(self: &Self, id: ID, offer: &OfferUpdate) -> Result<(), Error> {
+        self.update_one(
+            "offer_buy_price = ?2, offer_sell_price = ?3,
+            offer_buy_quantity = ?4, offer_sell_quantity = ?5
+            WHERE offer_id = ?1",
+            &[&id,
+            &offer.offer_buy_price, &offer.offer_sell_price,
+            &offer.offer_buy_quantity, &offer.offer_sell_quantity])
     }
 }
 
@@ -377,10 +366,6 @@ impl Table for EntityTable {
             creation_time   TEXT NOT NULL
         )";
 
-    const INSERT: &'static str =
-        "(entity_id, entity_name, entity_type, creation_time)
-            VALUES (?1, ?2, ?3, ?4)";
-
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let entity_id = r.get_checked("entity_id")?;
         let entity_name = r.get_checked("entity_name")?;
@@ -395,9 +380,17 @@ impl Table for EntityTable {
         })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&r.id, &r.fields.entity_name, &r.fields.entity_type, &r.creation_time])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(entity_id, entity_name, entity_type, creation_time)
+            VALUES (?1, ?2, ?3, ?4)",
+            &[&r.id, &r.fields.entity_name, &r.fields.entity_type, &r.creation_time])
+    }
+}
+
+impl<'a> Select<'a, EntityTable> {
+    pub fn by_entity_type(self: &Self, entity_type: &str) -> Result<Vec<Record<Entity>>, Error> {
+        self.all_where("entity_type = ?1", &[&entity_type])
     }
 }
 
@@ -416,10 +409,6 @@ impl Table for RelTable {
             UNIQUE(rel_from, rel_type)
         )";
 
-    const INSERT: &'static str =
-        "(rel_id, rel_type, rel_from, rel_to, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5)";
-
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let rel_id = r.get_checked("rel_id")?;
         let rel_type = r.get_checked("rel_type")?;
@@ -435,9 +424,11 @@ impl Table for RelTable {
         })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&r.id, &r.fields.rel_type, &r.fields.rel_from, &r.fields.rel_to, &r.creation_time])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(rel_id, rel_type, rel_from, rel_to, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5)",
+            &[&r.id, &r.fields.rel_type, &r.fields.rel_from, &r.fields.rel_to, &r.creation_time])
     }
 }
 
@@ -455,10 +446,6 @@ impl Table for PropTable {
             PRIMARY KEY(entity_id, prop_id)
         )";
 
-    const INSERT: &'static str =
-        "(entity_id, prop_id, prop_value, creation_time)
-            VALUES (?1, ?2, ?3, ?4)";
-
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let entity_id = r.get_checked("entity_id")?;
         let prop_id = r.get_checked("prop_id")?;
@@ -467,9 +454,11 @@ impl Table for PropTable {
         Ok(PropRow { entity_id, prop_id, prop_value, creation_time })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&r.entity_id, &r.prop_id, &r.prop_value, &r.creation_time])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(entity_id, prop_id, prop_value, creation_time)
+            VALUES (?1, ?2, ?3, ?4)",
+            &[&r.entity_id, &r.prop_id, &r.prop_value, &r.creation_time])
     }
 }
 
@@ -487,10 +476,6 @@ impl Table for PredTable {
             creation_time   TEXT NOT NULL
         )";
 
-    const INSERT: &'static str =
-        "(pred_id, pred_name, pred_args, pred_value, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5)";
-
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let pred_id = r.get_checked("pred_id")?;
         let pred_name = r.get_checked("pred_name")?;
@@ -506,9 +491,11 @@ impl Table for PredTable {
         })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&r.id, &r.fields.pred_name, &r.fields.pred_args, &r.fields.pred_value, &r.creation_time])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(pred_id, pred_name, pred_args, pred_value, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5)",
+            &[&r.id, &r.fields.pred_name, &r.fields.pred_args, &r.fields.pred_value, &r.creation_time])
     }
 }
 
@@ -530,10 +517,6 @@ impl Table for DependTable {
             UNIQUE(depend_type, depend_pred1, depend_pred2)
         )";
 
-    const INSERT: &'static str =
-        "(depend_id, depend_type, depend_pred1, depend_pred2, depend_vars, depend_args1, depend_args2, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
-
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let depend_id = r.get_checked("depend_id")?;
         let depend_type = r.get_checked("depend_type")?;
@@ -552,9 +535,11 @@ impl Table for DependTable {
         })
     }
 
-    fn do_insert<F>(r: &Self::TableRow, insert: F) -> Result<(), Error>
-    where F: FnOnce(&[&ToSql]) -> Result<(), Error> {
-        insert(&[&r.id, &r.fields.depend_type, &r.fields.depend_pred1, &r.fields.depend_pred2, &r.fields.depend_vars, &r.fields.depend_args1, &r.fields.depend_args2, &r.creation_time])
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(depend_id, depend_type, depend_pred1, depend_pred2, depend_vars, depend_args1, depend_args2, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            &[&r.id, &r.fields.depend_type, &r.fields.depend_pred1, &r.fields.depend_pred2, &r.fields.depend_vars, &r.fields.depend_args1, &r.fields.depend_args2, &r.creation_time])
     }
 }
 

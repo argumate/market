@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use failure::Error;
+use failure::{Error, err_msg};
 use time::get_time;
 use uuid::Uuid;
 use rusqlite::Connection;
@@ -9,9 +9,9 @@ pub mod msgs;
 mod tables;
 
 use db::DB;
-use market::types::{ID, User, IOU, Cond, Entity, Rel, Pred, Depend};
+use market::types::{ID, Dollars, User, IOU, Transfer, Cond, Entity, Rel, Pred, Depend};
 use market::tables::{MarketRow, Record, PropRow, MarketTable, UserTable, IOUTable, CondTable, OfferTable, EntityTable, RelTable, PropTable, PredTable, DependTable};
-use market::msgs::{Request, Response, Query, Item, ItemUpdate, ToItem};
+use market::msgs::{Request, Response, Query, Item, ItemUpdate, ToItem, single_item};
 
 pub struct Market {
     db: Connection,
@@ -135,16 +135,74 @@ impl Market {
         }
     }
 
-    pub fn do_update(self: &mut Self, items: HashMap<ID, ItemUpdate>) -> Result<Response, Error> {
-        for (id, item) in items {
-            match item {
-                ItemUpdate::Offer(offer) => {
-                    // FIXME access control
-                    self.db.update::<OfferTable>().update_offer(id, &offer)?;
+    fn do_iou_transfer(self: &mut Self, id: ID, transfer: &Transfer) -> Result<HashMap<ID, Item>, Error> {
+        let mut ious = HashMap::new();
+        let tx = self.db.transaction()?;
+        let r = tx.select::<IOUTable>().by_id(&id)?;
+        let old_iou = r.fields;
+        // FIXME access control
+        if old_iou.iou_void {
+            return Err(err_msg("IOU is already void"))
+        } else {
+            tx.update().void_iou(&id)?;
+            let mut total = Dollars::ZERO;
+            for (_, value) in &transfer.holders {
+                if *value > Dollars::ZERO {
+                    total += *value;
+                } else {
+                    return Err(err_msg("IOU value must be positive"))
                 }
             }
+            if total != old_iou.iou_value {
+                return Err(err_msg("incorrect transfer value"))
+            }
+            for (user_id, value) in &transfer.holders {
+                let new_iou = IOU {
+                    iou_holder: user_id.clone(),
+                    iou_value: *value,
+                    iou_split: Some(id.clone()),
+                    iou_void: *user_id == old_iou.iou_issuer,
+                    .. old_iou.clone()
+                };
+                let new_record = Record::new(new_iou);
+                tx.insert::<IOUTable>(&new_record)?;
+                ious.insert(new_record.id, new_record.fields.to_item());
+            }
         }
-        Ok(Response::Updated)
+        tx.commit()?;
+        Ok(ious)
+    }
+
+    fn do_iou_void(self: &mut Self, id: &ID) -> Result<IOU, Error> {
+        let tx = self.db.transaction()?;
+        let mut r = tx.select::<IOUTable>().by_id(&id)?;
+        // FIXME access control
+        if r.fields.iou_void {
+            return Err(err_msg("IOU is already void"))
+        } else {
+            tx.update().void_iou(&id)?;
+            r.fields.iou_void = true;
+        }
+        tx.commit()?;
+        Ok(r.fields)
+    }
+
+    pub fn do_update(self: &mut Self, id: ID, item_update: ItemUpdate) -> Result<Response, Error> {
+        match item_update {
+            ItemUpdate::Offer(offer) => {
+                // FIXME access control
+                self.db.update::<OfferTable>().update_offer(&id, &offer)?;
+                Ok(Response::Updated)
+            }
+            ItemUpdate::Transfer(transfer) => {
+                let items = self.do_iou_transfer(id, &transfer)?;
+                Ok(Response::Items(items))
+            }
+            ItemUpdate::Void => {
+                let iou = self.do_iou_void(&id)?;
+                Ok(Response::Items(single_item(id, iou)))
+            }
+        }
     }
 
     pub fn do_query(self: &mut Self, query: Query) -> Result<Response, Error> {
@@ -199,7 +257,7 @@ impl Market {
     pub fn do_request(self: &mut Self, request: Request) -> Result<Response, Error> {
         match request {
             Request::Create(item) => self.do_create(item),
-            Request::Update(items) => self.do_update(items),
+            Request::Update { id, item_update } => self.do_update(id, item_update),
             Request::Query(query) => self.do_query(query)
         }
     }

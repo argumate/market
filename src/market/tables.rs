@@ -161,6 +161,12 @@ impl Table for UserTable {
 }
 
 impl<'a> Select<'a, UserTable> {
+    pub fn by_id(self: &Self, id: &ID) -> Result<Record<User>, Error> {
+        self.one_where("user_id = ?1", &[id])
+    }
+}
+
+impl<'a> Select<'a, UserTable> {
     pub fn by_user_name(self: &Self, user_name: &str) -> Result<Record<User>, Error> {
         self.one_where("user_name = ?1", &[&user_name])
     }
@@ -180,6 +186,7 @@ impl Table for IOUTable {
             iou_cond_id     TEXT REFERENCES cond(cond_id),
             iou_cond_flag   INTEGER NOT NULL,
             iou_cond_time   INTEGER,
+            iou_split       TEXT REFERENCES iou(iou_id),
             iou_void        BOOLEAN,
             creation_time   TEXT NOT NULL
         )";
@@ -192,6 +199,7 @@ impl Table for IOUTable {
         let iou_cond_id = r.get_checked("iou_cond_id")?;
         let iou_cond_flag = r.get_checked("iou_cond_flag")?;
         let iou_cond_time = r.get_checked("iou_cond_time")?;
+        let iou_split = r.get_checked("iou_split")?;
         let iou_void = r.get_checked("iou_void")?;
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
@@ -203,7 +211,8 @@ impl Table for IOUTable {
                 iou_cond_id,
                 iou_cond_flag,
                 iou_cond_time,
-                iou_void
+                iou_split,
+                iou_void,
             },
             creation_time
         })
@@ -211,8 +220,8 @@ impl Table for IOUTable {
 
     fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
         table.insert(
-            "(iou_id, iou_issuer, iou_holder, iou_value, iou_cond_id, iou_cond_flag, iou_cond_time, iou_void, creation_time)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            "(iou_id, iou_issuer, iou_holder, iou_value, iou_cond_id, iou_cond_flag, iou_cond_time, iou_split, iou_void, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             &[
                 &r.id,
                 &r.fields.iou_issuer,
@@ -221,9 +230,24 @@ impl Table for IOUTable {
                 &r.fields.iou_cond_id,
                 &r.fields.iou_cond_flag,
                 &r.fields.iou_cond_time,
+                &r.fields.iou_split,
                 &r.fields.iou_void,
                 &r.creation_time
             ])
+    }
+}
+
+impl<'a> Select<'a, IOUTable> {
+    pub fn by_id(self: &Self, id: &ID) -> Result<Record<IOU>, Error> {
+        self.one_where("iou_id = ?1", &[id])
+    }
+}
+
+impl<'a> Update<'a, IOUTable> {
+    pub fn void_iou(self: &Self, id: &ID) -> Result<(), Error> {
+        self.update_one(
+            "iou_void = 1 WHERE iou_id = ?1 AND iou_void = 0",
+            &[id])
     }
 }
 
@@ -342,12 +366,12 @@ impl Table for OfferTable {
 }
 
 impl<'a> Update<'a, OfferTable> {
-    pub fn update_offer(self: &Self, id: ID, offer: &OfferUpdate) -> Result<(), Error> {
+    pub fn update_offer(self: &Self, id: &ID, offer: &OfferUpdate) -> Result<(), Error> {
         self.update_one(
             "offer_buy_price = ?2, offer_sell_price = ?3,
             offer_buy_quantity = ?4, offer_sell_quantity = ?5
             WHERE offer_id = ?1",
-            &[&id,
+            &[id,
             &offer.offer_buy_price, &offer.offer_sell_price,
             &offer.offer_buy_quantity, &offer.offer_sell_quantity])
     }

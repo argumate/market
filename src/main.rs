@@ -14,14 +14,14 @@ extern crate uuid;
 pub mod db;
 pub mod market;
 
+use std::env;
 use std::collections::HashMap;
 use failure::Error;
 use getopts::Options;
-use std::env;
 
 use db::DB;
 use market::Market;
-use market::types::{ID, Dollars, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
+use market::types::{ID, Dollars, ArgList, User, IOU, Transfer, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
 use market::msgs::{Request, Response, Query, Item, ItemUpdate};
 
 enum CmdLine {
@@ -219,27 +219,41 @@ fn do_command(cmd: Command) -> Result<(), Error> {
                     offer_sell_quantity: 200
                 })))?.unwrap_id();
 
-            let mut us = HashMap::new();
-            us.insert(offer_id,
-                ItemUpdate::Offer(OfferUpdate {
+            market.do_request(Request::Update {
+                id: offer_id,
+                item_update: ItemUpdate::Offer(OfferUpdate {
                     offer_buy_price: Dollars::from_millibucks(360),
                     offer_sell_price: Dollars::from_millibucks(430),
                     offer_buy_quantity: 150,
                     offer_sell_quantity: 180
-                }));
+                })})?;
 
-            market.do_request(Request::Update(us))?;
-
-            market.do_request(Request::Create(
+            let iou_id = market.do_request(Request::Create(
                 Item::IOU(IOU {
-                    iou_issuer: mrfoo,
-                    iou_holder: mrbar,
+                    iou_issuer: mrfoo.clone(),
+                    iou_holder: mrbar.clone(),
                     iou_value: Dollars::from_millibucks(170),
                     iou_cond_id: Some(trump_elected),
                     iou_cond_flag: true,
                     iou_cond_time: None,
+                    iou_split: None,
                     iou_void: false
-                })))?;
+                })))?.unwrap_id();
+/*
+            market.do_request(Request::Update {
+                id: iou_id,
+                item_update: ItemUpdate::Void
+            })?;
+*/
+            let mut holders = HashMap::new();
+            holders.insert(mrfoo.clone(), Dollars::from_millibucks(120));
+            holders.insert(mrbar.clone(), Dollars::from_millibucks(50));
+            let transfer = Transfer { holders };
+
+            market.do_request(Request::Update {
+                id: iou_id,
+                item_update: ItemUpdate::Transfer(transfer)
+            })?;
 
             Ok(())
         }

@@ -1,13 +1,15 @@
+use std::collections::HashMap;
+use std::ops::{Add, AddAssign, Sub};
 use time::Timespec;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct ID(pub String);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 /// measured in millidollars
 pub struct Dollars(i64);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 /// UNIX time, seconds since 1970
 pub struct Timesecs(i64);
 
@@ -19,7 +21,7 @@ pub struct User {
     pub user_name: String
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IOU {
     pub iou_issuer: ID,
     pub iou_holder: ID,
@@ -27,7 +29,13 @@ pub struct IOU {
     pub iou_cond_id: Option<ID>,
     pub iou_cond_flag: bool,
     pub iou_cond_time: Option<Timesecs>,
+    pub iou_split: Option<ID>,
     pub iou_void: bool
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Transfer {
+    pub holders: HashMap<ID, Dollars>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -86,12 +94,36 @@ pub struct Depend {
 }
 
 impl Dollars {
+    pub const ZERO: Self = Dollars(0);
+
     pub fn from_millibucks(m: i64) -> Self {
         Dollars(m)
     }
 
     pub fn to_millibucks(self: &Self) -> i64 {
         self.0
+    }
+}
+
+impl Add for Dollars {
+    type Output = Dollars;
+
+    fn add(self, other: Dollars) -> Dollars {
+        Dollars(self.0 + other.0)
+    }
+}
+
+impl AddAssign for Dollars {
+    fn add_assign(&mut self, other: Dollars) {
+        self.0 += other.0
+    }
+}
+
+impl Sub for Dollars {
+    type Output = Dollars;
+
+    fn sub(self, other: Dollars) -> Dollars {
+        Dollars(self.0 - other.0)
     }
 }
 
@@ -147,6 +179,13 @@ fn token_list_two() {
     assert_eq!(ArgList::from("x,y").0.len(), 2);
     assert_eq!(ArgList::from("x,").0.len(), 2);
     assert_eq!(ArgList::from(",y").0.len(), 2);
+}
+
+#[test]
+fn dollars_ord() {
+    assert!(Dollars::from_millibucks(1) > Dollars::ZERO);
+    assert!(Dollars::from_millibucks(-1) < Dollars::ZERO);
+    assert!(Dollars::from_millibucks(0) == Dollars::ZERO);
 }
 
 // vi: ts=8 sts=4 et

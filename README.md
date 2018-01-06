@@ -6,19 +6,19 @@ activity of players trading conditional IOUs.
 ## IOUs
 
 An IOU is a debt for a specified amount that the issuer owes the holder. The
-holder of an IOU can unilaterally transfer it to be held by someone else,
-either in its entirety or partially by splitting it into several IOUs that sum
-to the same amount as the original. Transferring an IOU back to the issuer is
-equivalent to voiding it.
+holder of an IOU can unilaterally transfer it to someone else, either in its
+entirety or by splitting it into several smaller IOUs that sum to the same
+amount as the original. Transferring an IOU back to the issuer is equivalent
+to voiding or cancelling it as players cannot hold debt issued by themselves.
 
 IOUs have no maturity date and do not require interest payments. IOUs are
-denominated in US dollars, but there is no obligation on the issuer to ever
-actually redeem them for US dollars, or indeed for anything else, although
-they are free to do so if they wish.
+denominated in US dollars, but the issuer has no legal obligation to actually
+redeem them for US dollars, or indeed for anything else, although they are
+free to do so if they wish.
 
-A market player can issue an arbitrary number of IOUs of arbitrary amounts,
-however other players may value their IOUs more cheaply if they judge that
-they have issued too many.
+Players can issue an arbitrary number of IOUs of arbitrary amounts, however
+other players may consider the IOUs to be less valuable if they believe that
+the issuer has issued too many, or is likely to do so in the future.
 
 ## Conditions
 

@@ -136,17 +136,20 @@ impl Table for UserTable {
         "CREATE TABLE user (
             user_id         TEXT NOT NULL PRIMARY KEY,
             user_name       TEXT NOT NULL UNIQUE,
+            user_locked     BOOLEAN,
             creation_time   TEXT NOT NULL
         )";
 
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
         let user_id = r.get_checked("user_id")?;
         let user_name = r.get_checked("user_name")?;
+        let user_locked = r.get_checked("user_locked")?;
         let creation_time = r.get_checked("creation_time")?;
         Ok(Record {
             id: user_id,
             fields: User {
-                user_name
+                user_name,
+                user_locked
             },
             creation_time
         })
@@ -154,9 +157,9 @@ impl Table for UserTable {
 
     fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
         table.insert(
-            "(user_id, user_name, creation_time)
-            VALUES (?1, ?2, ?3)",
-            &[&r.id, &r.fields.user_name, &r.creation_time])
+            "(user_id, user_name, user_locked, creation_time)
+            VALUES (?1, ?2, ?3, ?4)",
+            &[&r.id, &r.fields.user_name, &r.fields.user_locked, &r.creation_time])
     }
 }
 

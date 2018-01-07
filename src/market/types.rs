@@ -18,7 +18,8 @@ pub struct ArgList(Vec<String>);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    pub user_name: String
+    pub user_name: String,
+    pub user_locked: bool
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

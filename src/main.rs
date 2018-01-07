@@ -108,12 +108,14 @@ fn do_command(cmd: Command) -> Result<(), Error> {
 
             let mrfoo = market.do_request(Request::Create(
                 Item::User(User {
-                    user_name: String::from("Mr Foo")
+                    user_name: String::from("Mr Foo"),
+                    user_locked: false
                 })))?.unwrap_id();
 
             let mrbar = market.do_request(Request::Create(
                 Item::User(User {
-                    user_name: String::from("Mr Bar")
+                    user_name: String::from("Mr Bar"),
+                    user_locked: false
                 })))?.unwrap_id();
 
             let trump = market.do_request(Request::Create(

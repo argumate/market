@@ -101,7 +101,7 @@ impl Dollars {
         Dollars(m)
     }
 
-    pub fn to_millibucks(self: &Self) -> i64 {
+    pub fn to_millibucks(&self) -> i64 {
         self.0
     }
 }

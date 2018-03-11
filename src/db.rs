@@ -15,17 +15,17 @@ pub struct Update<'a, T> where T: Table {
 }
 
 impl<'a, T> Select<'a, T> where T: Table {
-    pub fn one(self: &Self) -> Result<T::TableRow, Error> {
+    pub fn one(&self) -> Result<T::TableRow, Error> {
         let query_str = format!("SELECT * FROM {}", T::TABLE_NAME);
         self.conn.query_row(&query_str, &[], T::from_row)?
     }
 
-    pub fn one_where(self: &Self, query: &str, params: &[&ToSql]) -> Result<T::TableRow, Error> {
+    pub fn one_where(&self, query: &str, params: &[&ToSql]) -> Result<T::TableRow, Error> {
         let query_str = format!("SELECT * FROM {} WHERE {}", T::TABLE_NAME, query);
         self.conn.query_row(&query_str, params, T::from_row)?
     }
 
-    pub fn all(self: &Self) -> Result<Vec<T::TableRow>, Error> {
+    pub fn all(&self) -> Result<Vec<T::TableRow>, Error> {
         let query_str = format!("SELECT * FROM {}", T::TABLE_NAME);
         let mut stmt = self.conn.prepare(&query_str)?;
         let rows = stmt.query_and_then(&[], T::from_row)?;
@@ -37,7 +37,7 @@ impl<'a, T> Select<'a, T> where T: Table {
         Ok(items)
     }
 
-    pub fn all_where(self: &Self, query: &str, params: &[&ToSql]) -> Result<Vec<T::TableRow>, Error> {
+    pub fn all_where(&self, query: &str, params: &[&ToSql]) -> Result<Vec<T::TableRow>, Error> {
         let query_str = format!("SELECT * FROM {} WHERE {}", T::TABLE_NAME, query);
         let mut stmt = self.conn.prepare(&query_str)?;
         let rows = stmt.query_and_then(params, T::from_row)?;
@@ -51,14 +51,14 @@ impl<'a, T> Select<'a, T> where T: Table {
 }
 
 impl<'a, T> Update<'a, T> where T: Table {
-    pub fn insert(self: &Self, query: &str, params: &[&ToSql]) -> Result<(), Error> {
+    pub fn insert(&self, query: &str, params: &[&ToSql]) -> Result<(), Error> {
         let query_str = format!("INSERT INTO {} {}", T::TABLE_NAME, query);
         let mut stmt = self.conn.prepare(&query_str)?;
         stmt.insert(&params)?;
         Ok(())
     }
 
-    pub fn update_one(self: &Self, query: &str, params: &[&ToSql]) -> Result<(), Error> {
+    pub fn update_one(&self, query: &str, params: &[&ToSql]) -> Result<(), Error> {
         let query_str = format!("UPDATE {} SET {}", T::TABLE_NAME, query);
         let mut stmt = self.conn.prepare(&query_str)?;
         let count = stmt.execute(params)?;
@@ -71,7 +71,7 @@ impl<'a, T> Update<'a, T> where T: Table {
         }
     }
 
-    pub fn update_many(self: &Self, query: &str, params: &[&ToSql]) -> Result<(), Error> {
+    pub fn update_many(&self, query: &str, params: &[&ToSql]) -> Result<(), Error> {
         let query_str = format!("UPDATE {} SET {}", T::TABLE_NAME, query);
         let mut stmt = self.conn.prepare(&query_str)?;
         let count = stmt.execute(params)?;
@@ -94,10 +94,10 @@ pub trait Table where Self: Sized {
 pub trait DB where Self: Sized {
     fn open_read_write<P: AsRef<Path>>(path: P) -> Result<Self, Error>;
     fn open_read_only<P: AsRef<Path>>(path: P) -> Result<Self, Error>;
-    fn create_table<T: Table>(self: &Self) -> Result<(), Error>;
-    fn select<'a, T: Table>(self: &'a Self) -> Select<'a, T>;
-    fn insert<T: Table>(self: &Self, r: &T::TableRow) -> Result<(), Error>;
-    fn update<'a, T: Table>(self: &'a Self) -> Update<'a, T>;
+    fn create_table<T: Table>(&self) -> Result<(), Error>;
+    fn select<'a, T: Table>(&'a self) -> Select<'a, T>;
+    fn insert<T: Table>(&self, r: &T::TableRow) -> Result<(), Error>;
+    fn update<'a, T: Table>(&'a self) -> Update<'a, T>;
 }
 
 impl DB for Connection {
@@ -112,20 +112,20 @@ impl DB for Connection {
         Ok(conn)
     }
 
-    fn create_table<T: Table>(self: &Self) -> Result<(), Error> {
+    fn create_table<T: Table>(&self) -> Result<(), Error> {
         self.execute(T::CREATE_TABLE, &[])?;
         Ok(())
     }
 
-    fn select<'a, T: Table>(self: &'a Self) -> Select<'a, T> {
+    fn select<'a, T: Table>(&'a self) -> Select<'a, T> {
         Select { conn: self, phantom: PhantomData }
     }
 
-    fn insert<T: Table>(self: &Self, r: &T::TableRow) -> Result<(), Error> {
+    fn insert<T: Table>(&self, r: &T::TableRow) -> Result<(), Error> {
         T::do_insert(&self.update::<T>(), r)
     }
 
-    fn update<'a, T: Table>(self: &'a Self) -> Update<'a, T> {
+    fn update<'a, T: Table>(&'a self) -> Update<'a, T> {
         Update { conn: self, phantom: PhantomData }
     }
 }

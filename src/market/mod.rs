@@ -42,47 +42,47 @@ impl Market {
         Ok(Market { db: db, info: info })
     }
 
-    pub fn select_user_by_name(self: &mut Self, user_name: &str) -> Result<Record<User>, Error> {
+    pub fn select_user_by_name(&mut self, user_name: &str) -> Result<Record<User>, Error> {
         self.db.select::<UserTable>().by_user_name(user_name)
     }
 
-    pub fn select_all_user(self: &mut Self) -> Result<Vec<Record<User>>, Error> {
+    pub fn select_all_user(&mut self) -> Result<Vec<Record<User>>, Error> {
         self.db.select::<UserTable>().all()
     }
 
-    pub fn select_all_iou(self: &mut Self) -> Result<Vec<Record<IOU>>, Error> {
+    pub fn select_all_iou(&mut self) -> Result<Vec<Record<IOU>>, Error> {
         self.db.select::<IOUTable>().all()
     }
 
-    pub fn select_all_cond(self: &mut Self) -> Result<Vec<Record<Cond>>, Error> {
+    pub fn select_all_cond(&mut self) -> Result<Vec<Record<Cond>>, Error> {
         self.db.select::<CondTable>().all()
     }
 
-    pub fn select_all_entity(self: &mut Self) -> Result<Vec<Record<Entity>>, Error> {
+    pub fn select_all_entity(&mut self) -> Result<Vec<Record<Entity>>, Error> {
         self.db.select::<EntityTable>().all()
     }
 
-    pub fn select_all_entity_by_type(self: &mut Self, entity_type: &str) -> Result<Vec<Record<Entity>>, Error> {
+    pub fn select_all_entity_by_type(&mut self, entity_type: &str) -> Result<Vec<Record<Entity>>, Error> {
         self.db.select::<EntityTable>().by_entity_type(entity_type)
     }
 
-    pub fn select_all_rel(self: &mut Self) -> Result<Vec<Record<Rel>>, Error> {
+    pub fn select_all_rel(&mut self) -> Result<Vec<Record<Rel>>, Error> {
         self.db.select::<RelTable>().all()
     }
 
-    pub fn select_all_prop(self: &mut Self) -> Result<Vec<PropRow>, Error> {
+    pub fn select_all_prop(&mut self) -> Result<Vec<PropRow>, Error> {
         self.db.select::<PropTable>().all()
     }
 
-    pub fn select_all_pred(self: &mut Self) -> Result<Vec<Record<Pred>>, Error> {
+    pub fn select_all_pred(&mut self) -> Result<Vec<Record<Pred>>, Error> {
         self.db.select::<PredTable>().all()
     }
 
-    pub fn select_all_depend(self: &mut Self) -> Result<Vec<Record<Depend>>, Error> {
+    pub fn select_all_depend(&mut self) -> Result<Vec<Record<Depend>>, Error> {
         self.db.select::<DependTable>().all()
     }
 
-    pub fn do_create(self: &mut Self, item: Item) -> Result<Response, Error> {
+    pub fn do_create(&mut self, item: Item) -> Result<Response, Error> {
         match item {
             Item::User(user) => {
                 // FIXME validation
@@ -135,7 +135,7 @@ impl Market {
         }
     }
 
-    fn do_iou_transfer(self: &mut Self, id: ID, transfer: &Transfer) -> Result<HashMap<ID, Item>, Error> {
+    fn do_iou_transfer(&mut self, id: ID, transfer: &Transfer) -> Result<HashMap<ID, Item>, Error> {
         let mut ious = HashMap::new();
         let tx = self.db.transaction()?;
         let r = tx.select::<IOUTable>().by_id(&id)?;
@@ -173,7 +173,7 @@ impl Market {
         Ok(ious)
     }
 
-    fn do_iou_void(self: &mut Self, id: &ID) -> Result<IOU, Error> {
+    fn do_iou_void(&mut self, id: &ID) -> Result<IOU, Error> {
         let tx = self.db.transaction()?;
         let mut r = tx.select::<IOUTable>().by_id(&id)?;
         // FIXME access control
@@ -187,7 +187,7 @@ impl Market {
         Ok(r.fields)
     }
 
-    pub fn do_update(self: &mut Self, id: ID, item_update: ItemUpdate) -> Result<Response, Error> {
+    pub fn do_update(&mut self, id: ID, item_update: ItemUpdate) -> Result<Response, Error> {
         match item_update {
             ItemUpdate::Offer(offer) => {
                 // FIXME access control
@@ -205,7 +205,7 @@ impl Market {
         }
     }
 
-    pub fn do_query(self: &mut Self, query: Query) -> Result<Response, Error> {
+    pub fn do_query(&mut self, query: Query) -> Result<Response, Error> {
         fn to_item<T: ToItem>(record: Record<T>) -> (ID, Item) {
             (record.id, record.fields.to_item())
         }
@@ -254,7 +254,7 @@ impl Market {
         }
     }
 
-    pub fn do_request(self: &mut Self, request: Request) -> Result<Response, Error> {
+    pub fn do_request(&mut self, request: Request) -> Result<Response, Error> {
         match request {
             Request::Create(item) => self.do_create(item),
             Request::Update { id, item_update } => self.do_update(id, item_update),

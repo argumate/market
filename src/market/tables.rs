@@ -164,13 +164,13 @@ impl Table for UserTable {
 }
 
 impl<'a> Select<'a, UserTable> {
-    pub fn by_id(self: &Self, id: &ID) -> Result<Record<User>, Error> {
+    pub fn by_id(&self, id: &ID) -> Result<Record<User>, Error> {
         self.one_where("user_id = ?1", &[id])
     }
 }
 
 impl<'a> Select<'a, UserTable> {
-    pub fn by_user_name(self: &Self, user_name: &str) -> Result<Record<User>, Error> {
+    pub fn by_user_name(&self, user_name: &str) -> Result<Record<User>, Error> {
         self.one_where("user_name = ?1", &[&user_name])
     }
 }
@@ -241,13 +241,13 @@ impl Table for IOUTable {
 }
 
 impl<'a> Select<'a, IOUTable> {
-    pub fn by_id(self: &Self, id: &ID) -> Result<Record<IOU>, Error> {
+    pub fn by_id(&self, id: &ID) -> Result<Record<IOU>, Error> {
         self.one_where("iou_id = ?1", &[id])
     }
 }
 
 impl<'a> Update<'a, IOUTable> {
-    pub fn void_iou(self: &Self, id: &ID) -> Result<(), Error> {
+    pub fn void_iou(&self, id: &ID) -> Result<(), Error> {
         self.update_one(
             "iou_void = 1 WHERE iou_id = ?1 AND iou_void = 0",
             &[id])
@@ -369,7 +369,7 @@ impl Table for OfferTable {
 }
 
 impl<'a> Update<'a, OfferTable> {
-    pub fn update_offer(self: &Self, id: &ID, offer: &OfferUpdate) -> Result<(), Error> {
+    pub fn update_offer(&self, id: &ID, offer: &OfferUpdate) -> Result<(), Error> {
         self.update_one(
             "offer_buy_price = ?2, offer_sell_price = ?3,
             offer_buy_quantity = ?4, offer_sell_quantity = ?5
@@ -416,7 +416,7 @@ impl Table for EntityTable {
 }
 
 impl<'a> Select<'a, EntityTable> {
-    pub fn by_entity_type(self: &Self, entity_type: &str) -> Result<Vec<Record<Entity>>, Error> {
+    pub fn by_entity_type(&self, entity_type: &str) -> Result<Vec<Record<Entity>>, Error> {
         self.all_where("entity_type = ?1", &[&entity_type])
     }
 }

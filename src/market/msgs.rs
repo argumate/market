@@ -56,53 +56,53 @@ pub fn single_item<T: ToItem>(id: ID, t: T) -> HashMap<ID, Item> {
 }
 
 pub trait ToItem {
-    fn to_item(self: Self) -> Item;
+    fn to_item(self) -> Item;
 }
 
 impl ToItem for User {
-    fn to_item(self: Self) -> Item {
+    fn to_item(self) -> Item {
         Item::User(self)
     }
 }
 
 impl ToItem for IOU {
-    fn to_item(self: Self) -> Item {
+    fn to_item(self) -> Item {
         Item::IOU(self)
     }
 }
 
 impl ToItem for Cond {
-    fn to_item(self: Self) -> Item {
+    fn to_item(self) -> Item {
         Item::Cond(self)
     }
 }
 
 impl ToItem for Offer {
-    fn to_item(self: Self) -> Item {
+    fn to_item(self) -> Item {
         Item::Offer(self)
     }
 }
 
 impl ToItem for Entity {
-    fn to_item(self: Self) -> Item {
+    fn to_item(self) -> Item {
         Item::Entity(self)
     }
 }
 
 impl ToItem for Rel {
-    fn to_item(self: Self) -> Item {
+    fn to_item(self) -> Item {
         Item::Rel(self)
     }
 }
 
 impl ToItem for Pred {
-    fn to_item(self: Self) -> Item {
+    fn to_item(self) -> Item {
         Item::Pred(self)
     }
 }
 
 impl ToItem for Depend {
-    fn to_item(self: Self) -> Item {
+    fn to_item(self) -> Item {
         Item::Depend(self)
     }
 }

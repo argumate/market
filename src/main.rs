@@ -91,7 +91,7 @@ fn main() {
 }
 
 impl Response {
-    fn unwrap_id(self: Response) -> ID {
+    fn unwrap_id(self) -> ID {
         match self {
             Response::Created(id) => id,
             Response::Updated => panic!("expected ID!"),

@@ -120,14 +120,14 @@ fn init(config: &Config) -> Result<(), Error> {
 
     let mrfoo = market
         .do_request(Request::Create(Item::User(User {
-            user_name: String::from("Mr Foo"),
+            user_name: String::from("MrFoo"),
             user_locked: false,
         })))?
         .unwrap_id();
 
     let mrbar = market
         .do_request(Request::Create(Item::User(User {
-            user_name: String::from("Mr Bar"),
+            user_name: String::from("MrBar"),
             user_locked: false,
         })))?
         .unwrap_id();
@@ -301,6 +301,7 @@ impl Response {
             Response::Created(id) => id,
             Response::Updated => panic!("expected ID!"),
             Response::Items(_) => panic!("expected ID!"),
+            Response::Error(_) => panic!("expected ID!"),
         }
     }
 

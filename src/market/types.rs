@@ -94,6 +94,16 @@ pub struct Depend {
     pub depend_args2: ArgList,
 }
 
+impl User {
+    pub fn valid_user_name(user_name: &str) -> bool {
+        user_name.chars().all(User::valid_user_name_char)
+    }
+
+    fn valid_user_name_char(c: char) -> bool {
+        c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.'
+    }
+}
+
 impl Dollars {
     pub const ZERO: Self = Dollars(0);
 

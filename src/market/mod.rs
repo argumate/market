@@ -9,6 +9,7 @@ pub mod msgs;
 mod tables;
 
 use db::DB;
+use market;
 use market::types::{Cond, Depend, Dollars, Entity, Pred, Rel, Transfer, User, ID, IOU};
 use market::tables::{CondTable, DependTable, EntityTable, IOUTable, MarketRow, MarketTable,
                      OfferTable, PredTable, PropRow, PropTable, Record, RelTable, UserTable};
@@ -92,10 +93,15 @@ impl Market {
     pub fn do_create(&mut self, item: Item) -> Result<Response, Error> {
         match item {
             Item::User(user) => {
-                // FIXME validation
-                let record = Record::new(user);
-                self.db.insert::<UserTable>(&record)?;
-                Ok(Response::Created(record.id))
+                if User::valid_user_name(&user.user_name) {
+                    // FIXME validation
+                    // FIXME user_name must be unique
+                    let record = Record::new(user);
+                    self.db.insert::<UserTable>(&record)?;
+                    Ok(Response::Created(record.id))
+                } else {
+                    Ok(Response::Error(market::msgs::Error::CannotCreateUser))
+                }
             }
             Item::IOU(iou) => {
                 // FIXME validation

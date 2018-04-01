@@ -42,11 +42,18 @@ pub enum Query {
     AllDepend,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
+pub enum Error {
+    InvalidUserName,
+    CannotCreateUser,
+}
+
+#[derive(Serialize)]
 pub enum Response {
     Created(ID),
     Updated,
     Items(HashMap<ID, Item>),
+    Error(Error),
 }
 
 pub fn single_item<T: ToItem>(id: ID, t: T) -> HashMap<ID, Item> {

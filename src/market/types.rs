@@ -102,6 +102,11 @@ impl User {
     fn valid_user_name_char(c: char) -> bool {
         c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.'
     }
+
+    pub fn user_name_stripped(user_name: &str) -> String {
+        // FIXME can use string_retain on nightly
+        user_name.chars().filter(char::is_ascii_alphanumeric).collect()
+    }
 }
 
 impl Dollars {

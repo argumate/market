@@ -137,10 +137,11 @@ impl Table for UserTable {
     const TABLE_NAME: &'static str = "user";
 
     const CREATE_TABLE: &'static str = "CREATE TABLE user (
-            user_id         TEXT NOT NULL PRIMARY KEY,
-            user_name       TEXT NOT NULL UNIQUE,
-            user_locked     BOOLEAN,
-            creation_time   TEXT NOT NULL
+            user_id             TEXT NOT NULL PRIMARY KEY,
+            user_name           TEXT NOT NULL UNIQUE,
+            user_name_stripped  TEXT NOT NULL UNIQUE,
+            user_locked         BOOLEAN,
+            creation_time       TEXT NOT NULL
         )";
 
     fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
@@ -160,11 +161,12 @@ impl Table for UserTable {
 
     fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
         table.insert(
-            "(user_id, user_name, user_locked, creation_time)
-            VALUES (?1, ?2, ?3, ?4)",
+            "(user_id, user_name, user_name_stripped, user_locked, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5)",
             &[
                 &r.id,
                 &r.fields.user_name,
+                &User::user_name_stripped(&r.fields.user_name),
                 &r.fields.user_locked,
                 &r.creation_time,
             ],
@@ -181,6 +183,12 @@ impl<'a> Select<'a, UserTable> {
 impl<'a> Select<'a, UserTable> {
     pub fn by_user_name(&self, user_name: &str) -> Result<Record<User>, Error> {
         self.one_where("user_name = ?1", &[&user_name])
+    }
+}
+
+impl<'a> Select<'a, UserTable> {
+    pub fn by_user_name_stripped(&self, user_name_stripped: &str) -> Result<Record<User>, Error> {
+        self.one_where("user_name_stripped = ?1", &[&user_name_stripped])
     }
 }
 

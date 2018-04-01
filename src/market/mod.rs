@@ -94,11 +94,18 @@ impl Market {
         match item {
             Item::User(user) => {
                 if User::valid_user_name(&user.user_name) {
-                    // FIXME validation
-                    // FIXME user_name must be unique
-                    let record = Record::new(user);
-                    self.db.insert::<UserTable>(&record)?;
-                    Ok(Response::Created(record.id))
+                    let user_name_stripped = User::user_name_stripped(&user.user_name);
+                    if let Ok(_) = self.db
+                        .select::<UserTable>()
+                        .by_user_name_stripped(&user_name_stripped)
+                    {
+                        // user_name must still be unique without punctuation
+                        Ok(Response::Error(market::msgs::Error::CannotCreateUser))
+                    } else {
+                        let record = Record::new(user);
+                        self.db.insert::<UserTable>(&record)?;
+                        Ok(Response::Created(record.id))
+                    }
                 } else {
                     Ok(Response::Error(market::msgs::Error::CannotCreateUser))
                 }

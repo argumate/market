@@ -24,8 +24,8 @@ use getopts::Options;
 
 use db::DB;
 use market::Market;
-use market::types::{ArgList, Cond, Depend, Dollars, Entity, Offer, OfferUpdate, Pred, Rel,
-                    Transfer, User, ID, IOU};
+use market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferUpdate, Pred,
+                    Rel, Timesecs, Transfer, User, ID, IOU};
 use market::msgs::{Item, ItemUpdate, Query, Request, Response};
 use server::run_server;
 
@@ -131,6 +131,13 @@ fn init(config: &Config) -> Result<(), Error> {
             user_locked: false,
         })))?
         .unwrap_id();
+
+    market.do_request(Request::Create(Item::Identity(Identity {
+        identity_user_id: mrfoo.clone(),
+        identity_service: String::from("tumblr"),
+        identity_account_name: String::from("mr--foo"),
+        identity_attested_time: Timesecs::from(0),
+    })))?;
 
     let trump = market
         .do_request(Request::Create(Item::Entity(Entity {

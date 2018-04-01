@@ -22,6 +22,14 @@ pub struct User {
     pub user_locked: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Identity {
+    pub identity_user_id: ID,
+    pub identity_service: String,
+    pub identity_account_name: String,
+    pub identity_attested_time: Timesecs,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IOU {
     pub iou_issuer: ID,

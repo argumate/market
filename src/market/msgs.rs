@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use market::types::{Cond, Depend, Entity, Offer, OfferUpdate, Pred, Rel, Transfer, User, ID, IOU};
+use market::types::{Cond, Depend, Entity, Identity, Offer, OfferUpdate, Pred, Rel, Transfer, User,
+                    ID, IOU};
 
 #[derive(Serialize, Deserialize)]
 pub enum Request {
@@ -13,6 +14,7 @@ pub enum Request {
 #[serde(tag = "type")]
 pub enum Item {
     User(User),
+    Identity(Identity),
     IOU(IOU),
     Cond(Cond),
     Offer(Offer),

@@ -11,8 +11,9 @@ mod tables;
 use db::DB;
 use market;
 use market::types::{Cond, Depend, Dollars, Entity, Pred, Rel, Transfer, User, ID, IOU};
-use market::tables::{CondTable, DependTable, EntityTable, IOUTable, MarketRow, MarketTable,
-                     OfferTable, PredTable, PropRow, PropTable, Record, RelTable, UserTable};
+use market::tables::{CondTable, DependTable, EntityTable, IOUTable, IdentityTable, MarketRow,
+                     MarketTable, OfferTable, PredTable, PropRow, PropTable, Record, RelTable,
+                     UserTable};
 use market::msgs::{single_item, Item, ItemUpdate, Query, Request, Response, ToItem};
 
 pub struct Market {
@@ -24,6 +25,7 @@ impl Market {
     pub fn create_new(db: Connection) -> Result<Market, Error> {
         db.create_table::<MarketTable>()?;
         db.create_table::<UserTable>()?;
+        db.create_table::<IdentityTable>()?;
         db.create_table::<IOUTable>()?;
         db.create_table::<CondTable>()?;
         db.create_table::<OfferTable>()?;
@@ -45,10 +47,6 @@ impl Market {
     pub fn open_existing(db: Connection) -> Result<Market, Error> {
         let info = db.select::<MarketTable>().one()?;
         Ok(Market { db: db, info: info })
-    }
-
-    pub fn select_user_by_name(&mut self, user_name: &str) -> Result<Record<User>, Error> {
-        self.db.select::<UserTable>().by_user_name(user_name)
     }
 
     pub fn select_all_user(&mut self) -> Result<Vec<Record<User>>, Error> {
@@ -109,6 +107,12 @@ impl Market {
                 } else {
                     Ok(Response::Error(market::msgs::Error::CannotCreateUser))
                 }
+            }
+            Item::Identity(identity) => {
+                // FIXME validation
+                let record = Record::new(identity);
+                self.db.insert::<IdentityTable>(&record)?;
+                Ok(Response::Created(record.id))
             }
             Item::IOU(iou) => {
                 // FIXME validation

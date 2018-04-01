@@ -6,11 +6,12 @@ use rusqlite::Row;
 use rusqlite::types::{FromSql, ToSql, ToSqlOutput, Value, ValueRef};
 
 use db::{Select, Table, Update};
-use market::types::{ArgList, Cond, Depend, Dollars, Entity, Offer, OfferUpdate, Pred, Rel,
-                    Timesecs, User, ID, IOU};
+use market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferUpdate, Pred,
+                    Rel, Timesecs, User, ID, IOU};
 
 pub struct MarketTable {}
 pub struct UserTable {}
+pub struct IdentityTable {}
 pub struct IOUTable {}
 pub struct CondTable {}
 pub struct OfferTable {}
@@ -189,6 +190,56 @@ impl<'a> Select<'a, UserTable> {
 impl<'a> Select<'a, UserTable> {
     pub fn by_user_name_stripped(&self, user_name_stripped: &str) -> Result<Record<User>, Error> {
         self.one_where("user_name_stripped = ?1", &[&user_name_stripped])
+    }
+}
+
+impl Table for IdentityTable {
+    type TableRow = Record<Identity>;
+
+    const TABLE_NAME: &'static str = "identity";
+
+    const CREATE_TABLE: &'static str = "CREATE TABLE identity (
+            identity_id             TEXT NOT NULL PRIMARY KEY,
+            identity_user_id        TEXT NOT NULL REFERENCES user(user_id),
+            identity_service        TEXT NOT NULL,
+            identity_account_name   TEXT NOT NULL,
+            identity_attested_time  INTEGER NOT NULL,
+            creation_time           TEXT NOT NULL,
+            UNIQUE(identity_user_id, identity_service)
+        )";
+
+    fn from_row(r: &Row) -> Result<Self::TableRow, Error> {
+        let identity_id = r.get_checked("identity_id")?;
+        let identity_user_id = r.get_checked("identity_user_id")?;
+        let identity_service = r.get_checked("identity_service")?;
+        let identity_account_name = r.get_checked("identity_account_name")?;
+        let identity_attested_time = r.get_checked("identity_attested_time")?;
+        let creation_time = r.get_checked("creation_time")?;
+        Ok(Record {
+            id: identity_id,
+            fields: Identity {
+                identity_user_id,
+                identity_service,
+                identity_account_name,
+                identity_attested_time,
+            },
+            creation_time,
+        })
+    }
+
+    fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
+        table.insert(
+            "(identity_id, identity_user_id, identity_service, identity_account_name, identity_attested_time, creation_time)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            &[
+                &r.id,
+                &r.fields.identity_user_id,
+                &r.fields.identity_service,
+                &r.fields.identity_account_name,
+                &r.fields.identity_attested_time,
+                &r.creation_time,
+            ],
+        )
     }
 }
 
@@ -632,9 +683,16 @@ impl Table for DependTable {
         table.insert(
             "(depend_id, depend_type, depend_pred1, depend_pred2, depend_vars, depend_args1, depend_args2, creation_time)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            &[&r.id, &r.fields.depend_type, &r.fields.depend_pred1, &r.fields.depend_pred2,
-            &r.fields.depend_vars, &r.fields.depend_args1,
-            &r.fields.depend_args2, &r.creation_time])
+            &[
+                &r.id,
+                &r.fields.depend_type,
+                &r.fields.depend_pred1,
+                &r.fields.depend_pred2,
+                &r.fields.depend_vars,
+                &r.fields.depend_args1,
+                &r.fields.depend_args2,
+                &r.creation_time
+            ])
     }
 }
 

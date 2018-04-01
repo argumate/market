@@ -1,20 +1,29 @@
 use std::path::Path;
 use std::marker::PhantomData;
-use failure::{Error, err_msg};
+use failure::{err_msg, Error};
 use rusqlite::{Connection, OpenFlags, Row};
 use rusqlite::types::ToSql;
 
-pub struct Select<'a, T> where T: Table {
+pub struct Select<'a, T>
+where
+    T: Table,
+{
     conn: &'a Connection,
-    phantom: PhantomData<T>
+    phantom: PhantomData<T>,
 }
 
-pub struct Update<'a, T> where T: Table {
+pub struct Update<'a, T>
+where
+    T: Table,
+{
     conn: &'a Connection,
-    phantom: PhantomData<T>
+    phantom: PhantomData<T>,
 }
 
-impl<'a, T> Select<'a, T> where T: Table {
+impl<'a, T> Select<'a, T>
+where
+    T: Table,
+{
     pub fn one(&self) -> Result<T::TableRow, Error> {
         let query_str = format!("SELECT * FROM {}", T::TABLE_NAME);
         self.conn.query_row(&query_str, &[], T::from_row)?
@@ -50,7 +59,10 @@ impl<'a, T> Select<'a, T> where T: Table {
     }
 }
 
-impl<'a, T> Update<'a, T> where T: Table {
+impl<'a, T> Update<'a, T>
+where
+    T: Table,
+{
     pub fn insert(&self, query: &str, params: &[&ToSql]) -> Result<(), Error> {
         let query_str = format!("INSERT INTO {} {}", T::TABLE_NAME, query);
         let mut stmt = self.conn.prepare(&query_str)?;
@@ -83,7 +95,10 @@ impl<'a, T> Update<'a, T> where T: Table {
     }
 }
 
-pub trait Table where Self: Sized {
+pub trait Table
+where
+    Self: Sized,
+{
     type TableRow: Sized;
     const TABLE_NAME: &'static str;
     const CREATE_TABLE: &'static str;
@@ -91,7 +106,10 @@ pub trait Table where Self: Sized {
     fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error>;
 }
 
-pub trait DB where Self: Sized {
+pub trait DB
+where
+    Self: Sized,
+{
     fn open_read_write<P: AsRef<Path>>(path: P) -> Result<Self, Error>;
     fn open_read_only<P: AsRef<Path>>(path: P) -> Result<Self, Error>;
     fn create_table<T: Table>(&self) -> Result<(), Error>;
@@ -118,7 +136,10 @@ impl DB for Connection {
     }
 
     fn select<'a, T: Table>(&'a self) -> Select<'a, T> {
-        Select { conn: self, phantom: PhantomData }
+        Select {
+            conn: self,
+            phantom: PhantomData,
+        }
     }
 
     fn insert<T: Table>(&self, r: &T::TableRow) -> Result<(), Error> {
@@ -126,7 +147,10 @@ impl DB for Connection {
     }
 
     fn update<'a, T: Table>(&'a self) -> Update<'a, T> {
-        Update { conn: self, phantom: PhantomData }
+        Update {
+            conn: self,
+            phantom: PhantomData,
+        }
     }
 }
 

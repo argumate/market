@@ -19,7 +19,7 @@ pub struct ArgList(Vec<String>);
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub user_name: String,
-    pub user_locked: bool
+    pub user_locked: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,18 +31,18 @@ pub struct IOU {
     pub iou_cond_flag: bool,
     pub iou_cond_time: Option<Timesecs>,
     pub iou_split: Option<ID>,
-    pub iou_void: bool
+    pub iou_void: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Transfer {
-    pub holders: HashMap<ID, Dollars>
+    pub holders: HashMap<ID, Dollars>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Cond {
     pub cond_pred: ID,
-    pub cond_args: Vec<ID>
+    pub cond_args: Vec<ID>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -53,7 +53,7 @@ pub struct Offer {
     pub offer_buy_price: Dollars,
     pub offer_sell_price: Dollars,
     pub offer_buy_quantity: u32,
-    pub offer_sell_quantity: u32
+    pub offer_sell_quantity: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,27 +61,27 @@ pub struct OfferUpdate {
     pub offer_buy_price: Dollars,
     pub offer_sell_price: Dollars,
     pub offer_buy_quantity: u32,
-    pub offer_sell_quantity: u32
+    pub offer_sell_quantity: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Entity {
     pub entity_name: String,
-    pub entity_type: String
+    pub entity_type: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Rel {
     pub rel_type: String,
     pub rel_from: ID,
-    pub rel_to: ID
+    pub rel_to: ID,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Pred {
     pub pred_name: String,
     pub pred_args: ArgList,
-    pub pred_value: Option<String>
+    pub pred_value: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -91,7 +91,7 @@ pub struct Depend {
     pub depend_pred2: ID,
     pub depend_vars: ArgList,
     pub depend_args1: ArgList,
-    pub depend_args2: ArgList
+    pub depend_args2: ArgList,
 }
 
 impl Dollars {
@@ -157,7 +157,7 @@ impl<'a> From<&'a str> for ArgList {
         if s.trim().is_empty() {
             ArgList(vec![])
         } else {
-            ArgList(s.split(',').map(|t| { t.trim().to_string() }).collect())
+            ArgList(s.split(',').map(|t| t.trim().to_string()).collect())
         }
     }
 }

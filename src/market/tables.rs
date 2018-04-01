@@ -1,28 +1,29 @@
-use failure::{Error, err_msg};
-use time::{Timespec, get_time};
+use failure::{err_msg, Error};
+use time::{get_time, Timespec};
 
 use rusqlite;
 use rusqlite::Row;
-use rusqlite::types::{ToSql, ToSqlOutput, FromSql, Value, ValueRef};
+use rusqlite::types::{FromSql, ToSql, ToSqlOutput, Value, ValueRef};
 
-use db::{Table, Update, Select};
-use market::types::{ID, Dollars, Timesecs, ArgList, User, IOU, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
+use db::{Select, Table, Update};
+use market::types::{ArgList, Cond, Depend, Dollars, Entity, Offer, OfferUpdate, Pred, Rel,
+                    Timesecs, User, ID, IOU};
 
-pub struct MarketTable { }
-pub struct UserTable { }
-pub struct IOUTable { }
-pub struct CondTable { }
-pub struct OfferTable { }
-pub struct EntityTable { }
-pub struct RelTable { }
-pub struct PropTable { }
-pub struct PredTable { }
-pub struct DependTable { }
+pub struct MarketTable {}
+pub struct UserTable {}
+pub struct IOUTable {}
+pub struct CondTable {}
+pub struct OfferTable {}
+pub struct EntityTable {}
+pub struct RelTable {}
+pub struct PropTable {}
+pub struct PredTable {}
+pub struct DependTable {}
 
 #[derive(Debug)]
 pub struct MarketRow {
     pub version: u32,
-    pub creation_time: Timespec
+    pub creation_time: Timespec,
 }
 
 impl ToSql for ID {
@@ -46,7 +47,7 @@ impl ToSql for Timesecs {
 
 impl FromSql for Timesecs {
     fn column_result(value: ValueRef) -> rusqlite::types::FromSqlResult<Self> {
-        let i : i64 = FromSql::column_result(value)?;
+        let i: i64 = FromSql::column_result(value)?;
         Ok(Timesecs::from(i))
     }
 }
@@ -59,7 +60,7 @@ impl ToSql for Dollars {
 
 impl FromSql for Dollars {
     fn column_result(value: ValueRef) -> rusqlite::types::FromSqlResult<Self> {
-        let i : i64 = FromSql::column_result(value)?;
+        let i: i64 = FromSql::column_result(value)?;
         Ok(Dollars::from_millibucks(i))
     }
 }
@@ -72,7 +73,7 @@ impl ToSql for ArgList {
 
 impl FromSql for ArgList {
     fn column_result(value: ValueRef) -> rusqlite::types::FromSqlResult<Self> {
-        let s : String = FromSql::column_result(value)?;
+        let s: String = FromSql::column_result(value)?;
         Ok(ArgList::from(s.as_str()))
     }
 }
@@ -81,7 +82,7 @@ impl FromSql for ArgList {
 pub struct Record<T> {
     pub id: ID,
     pub fields: T,
-    pub creation_time: Timespec
+    pub creation_time: Timespec,
 }
 
 impl<T> Record<T> {
@@ -89,7 +90,7 @@ impl<T> Record<T> {
         Record {
             id: ID::new(),
             fields: t,
-            creation_time: get_time()
+            creation_time: get_time(),
         }
     }
 }
@@ -99,16 +100,15 @@ pub struct PropRow {
     pub entity_id: ID,
     pub prop_id: String,
     pub prop_value: String,
-    pub creation_time: Timespec
+    pub creation_time: Timespec,
 }
 
 impl Table for MarketTable {
     type TableRow = MarketRow;
 
-    const TABLE_NAME : &'static str = "market";
+    const TABLE_NAME: &'static str = "market";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE market (
+    const CREATE_TABLE: &'static str = "CREATE TABLE market (
             version         INTEGER NOT NULL,
             creation_time   TEXT NOT NULL
         )";
@@ -116,24 +116,27 @@ impl Table for MarketTable {
     fn from_row(r: &Row) -> Result<MarketRow, Error> {
         let version = r.get_checked("version")?;
         let creation_time = r.get_checked("creation_time")?;
-        Ok(MarketRow { version, creation_time })
+        Ok(MarketRow {
+            version,
+            creation_time,
+        })
     }
 
     fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
         table.insert(
             "(version, creation_time)
             VALUES (?1, ?2)",
-            &[&r.version, &r.creation_time])
+            &[&r.version, &r.creation_time],
+        )
     }
 }
 
 impl Table for UserTable {
     type TableRow = Record<User>;
 
-    const TABLE_NAME : &'static str = "user";
+    const TABLE_NAME: &'static str = "user";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE user (
+    const CREATE_TABLE: &'static str = "CREATE TABLE user (
             user_id         TEXT NOT NULL PRIMARY KEY,
             user_name       TEXT NOT NULL UNIQUE,
             user_locked     BOOLEAN,
@@ -149,9 +152,9 @@ impl Table for UserTable {
             id: user_id,
             fields: User {
                 user_name,
-                user_locked
+                user_locked,
             },
-            creation_time
+            creation_time,
         })
     }
 
@@ -159,7 +162,13 @@ impl Table for UserTable {
         table.insert(
             "(user_id, user_name, user_locked, creation_time)
             VALUES (?1, ?2, ?3, ?4)",
-            &[&r.id, &r.fields.user_name, &r.fields.user_locked, &r.creation_time])
+            &[
+                &r.id,
+                &r.fields.user_name,
+                &r.fields.user_locked,
+                &r.creation_time,
+            ],
+        )
     }
 }
 
@@ -178,10 +187,9 @@ impl<'a> Select<'a, UserTable> {
 impl Table for IOUTable {
     type TableRow = Record<IOU>;
 
-    const TABLE_NAME : &'static str = "iou";
+    const TABLE_NAME: &'static str = "iou";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE iou (
+    const CREATE_TABLE: &'static str = "CREATE TABLE iou (
             iou_id          TEXT NOT NULL PRIMARY KEY,
             iou_issuer      TEXT NOT NULL REFERENCES user(user_id),
             iou_holder      TEXT NOT NULL REFERENCES user(user_id),
@@ -217,7 +225,7 @@ impl Table for IOUTable {
                 iou_split,
                 iou_void,
             },
-            creation_time
+            creation_time,
         })
     }
 
@@ -248,19 +256,16 @@ impl<'a> Select<'a, IOUTable> {
 
 impl<'a> Update<'a, IOUTable> {
     pub fn void_iou(&self, id: &ID) -> Result<(), Error> {
-        self.update_one(
-            "iou_void = 1 WHERE iou_id = ?1 AND iou_void = 0",
-            &[id])
+        self.update_one("iou_void = 1 WHERE iou_id = ?1 AND iou_void = 0", &[id])
     }
 }
 
 impl Table for CondTable {
     type TableRow = Record<Cond>;
 
-    const TABLE_NAME : &'static str = "cond";
+    const TABLE_NAME: &'static str = "cond";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE cond (
+    const CREATE_TABLE: &'static str = "CREATE TABLE cond (
             cond_id         TEXT NOT NULL PRIMARY KEY,
             cond_pred       TEXT NOT NULL REFERENCES pred(pred_id),
             cond_arg1       TEXT REFERENCES entity(entity_id),
@@ -285,23 +290,41 @@ impl Table for CondTable {
             id: cond_id,
             fields: Cond {
                 cond_pred,
-                cond_args
+                cond_args,
             },
-            creation_time
+            creation_time,
         })
     }
 
     fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
         let cond_args = &r.fields.cond_args;
         if cond_args.len() <= 2 {
-            let cond_arg1 = if cond_args.len() > 0 { Some(cond_args[0].clone()) } else { None };
-            let cond_arg2 = if cond_args.len() > 1 { Some(cond_args[1].clone()) } else { None };
+            let cond_arg1 = if cond_args.len() > 0 {
+                Some(cond_args[0].clone())
+            } else {
+                None
+            };
+            let cond_arg2 = if cond_args.len() > 1 {
+                Some(cond_args[1].clone())
+            } else {
+                None
+            };
             table.insert(
                 "(cond_id, cond_pred, cond_arg1, cond_arg2, creation_time)
                 VALUES (?1, ?2, ?3, ?4, ?5)",
-                &[&r.id, &r.fields.cond_pred, &cond_arg1, &cond_arg2, &r.creation_time])
+                &[
+                    &r.id,
+                    &r.fields.cond_pred,
+                    &cond_arg1,
+                    &cond_arg2,
+                    &r.creation_time,
+                ],
+            )
         } else {
-            Err(err_msg(format!("cond has too many arguments: {}", cond_args.len())))
+            Err(err_msg(format!(
+                "cond has too many arguments: {}",
+                cond_args.len()
+            )))
         }
     }
 }
@@ -309,10 +332,9 @@ impl Table for CondTable {
 impl Table for OfferTable {
     type TableRow = Record<Offer>;
 
-    const TABLE_NAME : &'static str = "offer";
+    const TABLE_NAME: &'static str = "offer";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE offer (
+    const CREATE_TABLE: &'static str = "CREATE TABLE offer (
             offer_id            TEXT NOT NULL PRIMARY KEY,
             offer_user          TEXT NOT NULL REFERENCES user(user_id),
             offer_cond_id       TEXT NOT NULL REFERENCES cond(cond_id),
@@ -344,9 +366,9 @@ impl Table for OfferTable {
                 offer_buy_price,
                 offer_sell_price,
                 offer_buy_quantity,
-                offer_sell_quantity
+                offer_sell_quantity,
             },
-            creation_time
+            creation_time,
         })
     }
 
@@ -374,19 +396,23 @@ impl<'a> Update<'a, OfferTable> {
             "offer_buy_price = ?2, offer_sell_price = ?3,
             offer_buy_quantity = ?4, offer_sell_quantity = ?5
             WHERE offer_id = ?1",
-            &[id,
-            &offer.offer_buy_price, &offer.offer_sell_price,
-            &offer.offer_buy_quantity, &offer.offer_sell_quantity])
+            &[
+                id,
+                &offer.offer_buy_price,
+                &offer.offer_sell_price,
+                &offer.offer_buy_quantity,
+                &offer.offer_sell_quantity,
+            ],
+        )
     }
 }
 
 impl Table for EntityTable {
     type TableRow = Record<Entity>;
 
-    const TABLE_NAME : &'static str = "entity";
+    const TABLE_NAME: &'static str = "entity";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE entity (
+    const CREATE_TABLE: &'static str = "CREATE TABLE entity (
             entity_id       TEXT NOT NULL PRIMARY KEY,
             entity_name     TEXT NOT NULL UNIQUE,
             entity_type     TEXT NOT NULL,
@@ -401,9 +427,10 @@ impl Table for EntityTable {
         Ok(Record {
             id: entity_id,
             fields: Entity {
-                entity_name, entity_type
+                entity_name,
+                entity_type,
             },
-            creation_time
+            creation_time,
         })
     }
 
@@ -411,7 +438,13 @@ impl Table for EntityTable {
         table.insert(
             "(entity_id, entity_name, entity_type, creation_time)
             VALUES (?1, ?2, ?3, ?4)",
-            &[&r.id, &r.fields.entity_name, &r.fields.entity_type, &r.creation_time])
+            &[
+                &r.id,
+                &r.fields.entity_name,
+                &r.fields.entity_type,
+                &r.creation_time,
+            ],
+        )
     }
 }
 
@@ -424,10 +457,9 @@ impl<'a> Select<'a, EntityTable> {
 impl Table for RelTable {
     type TableRow = Record<Rel>;
 
-    const TABLE_NAME : &'static str = "rel";
+    const TABLE_NAME: &'static str = "rel";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE rel (
+    const CREATE_TABLE: &'static str = "CREATE TABLE rel (
             rel_id          TEXT NOT NULL PRIMARY KEY,
             rel_type        TEXT NOT NULL,
             rel_from        TEXT NOT NULL REFERENCES entity(entity_id),
@@ -445,9 +477,11 @@ impl Table for RelTable {
         Ok(Record {
             id: rel_id,
             fields: Rel {
-                rel_type, rel_from, rel_to
+                rel_type,
+                rel_from,
+                rel_to,
             },
-            creation_time
+            creation_time,
         })
     }
 
@@ -455,17 +489,23 @@ impl Table for RelTable {
         table.insert(
             "(rel_id, rel_type, rel_from, rel_to, creation_time)
             VALUES (?1, ?2, ?3, ?4, ?5)",
-            &[&r.id, &r.fields.rel_type, &r.fields.rel_from, &r.fields.rel_to, &r.creation_time])
+            &[
+                &r.id,
+                &r.fields.rel_type,
+                &r.fields.rel_from,
+                &r.fields.rel_to,
+                &r.creation_time,
+            ],
+        )
     }
 }
 
 impl Table for PropTable {
     type TableRow = PropRow;
 
-    const TABLE_NAME : &'static str = "prop";
+    const TABLE_NAME: &'static str = "prop";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE prop (
+    const CREATE_TABLE: &'static str = "CREATE TABLE prop (
             entity_id       TEXT NOT NULL REFERENCES entity(entity_id),
             prop_id         TEXT NOT NULL,
             prop_value      TEXT_NOT_NULL,
@@ -478,24 +518,29 @@ impl Table for PropTable {
         let prop_id = r.get_checked("prop_id")?;
         let prop_value = r.get_checked("prop_value")?;
         let creation_time = r.get_checked("creation_time")?;
-        Ok(PropRow { entity_id, prop_id, prop_value, creation_time })
+        Ok(PropRow {
+            entity_id,
+            prop_id,
+            prop_value,
+            creation_time,
+        })
     }
 
     fn do_insert(table: &Update<Self>, r: &Self::TableRow) -> Result<(), Error> {
         table.insert(
             "(entity_id, prop_id, prop_value, creation_time)
             VALUES (?1, ?2, ?3, ?4)",
-            &[&r.entity_id, &r.prop_id, &r.prop_value, &r.creation_time])
+            &[&r.entity_id, &r.prop_id, &r.prop_value, &r.creation_time],
+        )
     }
 }
 
 impl Table for PredTable {
     type TableRow = Record<Pred>;
 
-    const TABLE_NAME : &'static str = "pred";
+    const TABLE_NAME: &'static str = "pred";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE pred (
+    const CREATE_TABLE: &'static str = "CREATE TABLE pred (
             pred_id         TEXT NOT NULL PRIMARY KEY,
             pred_name       TEXT NOT NULL UNIQUE,
             pred_args       TEXT NOT NULL,
@@ -512,9 +557,11 @@ impl Table for PredTable {
         Ok(Record {
             id: pred_id,
             fields: Pred {
-                pred_name, pred_args, pred_value
+                pred_name,
+                pred_args,
+                pred_value,
             },
-            creation_time
+            creation_time,
         })
     }
 
@@ -522,17 +569,23 @@ impl Table for PredTable {
         table.insert(
             "(pred_id, pred_name, pred_args, pred_value, creation_time)
             VALUES (?1, ?2, ?3, ?4, ?5)",
-            &[&r.id, &r.fields.pred_name, &r.fields.pred_args, &r.fields.pred_value, &r.creation_time])
+            &[
+                &r.id,
+                &r.fields.pred_name,
+                &r.fields.pred_args,
+                &r.fields.pred_value,
+                &r.creation_time,
+            ],
+        )
     }
 }
 
 impl Table for DependTable {
     type TableRow = Record<Depend>;
 
-    const TABLE_NAME : &'static str = "depend";
+    const TABLE_NAME: &'static str = "depend";
 
-    const CREATE_TABLE : &'static str =
-        "CREATE TABLE depend (
+    const CREATE_TABLE: &'static str = "CREATE TABLE depend (
             depend_id       TEXT NOT NULL PRIMARY KEY,
             depend_type     TEXT NOT NULL,
             depend_pred1    TEXT NOT NULL REFERENCES pred(pred_id),
@@ -556,9 +609,14 @@ impl Table for DependTable {
         Ok(Record {
             id: depend_id,
             fields: Depend {
-                depend_type, depend_pred1, depend_pred2, depend_vars, depend_args1, depend_args2
+                depend_type,
+                depend_pred1,
+                depend_pred2,
+                depend_vars,
+                depend_args1,
+                depend_args2,
             },
-            creation_time
+            creation_time,
         })
     }
 
@@ -566,7 +624,9 @@ impl Table for DependTable {
         table.insert(
             "(depend_id, depend_type, depend_pred1, depend_pred2, depend_vars, depend_args1, depend_args2, creation_time)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            &[&r.id, &r.fields.depend_type, &r.fields.depend_pred1, &r.fields.depend_pred2, &r.fields.depend_vars, &r.fields.depend_args1, &r.fields.depend_args2, &r.creation_time])
+            &[&r.id, &r.fields.depend_type, &r.fields.depend_pred1, &r.fields.depend_pred2,
+            &r.fields.depend_vars, &r.fields.depend_args1,
+            &r.fields.depend_args2, &r.creation_time])
     }
 }
 

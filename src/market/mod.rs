@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use failure::{Error, err_msg};
+use failure::{err_msg, Error};
 use time::get_time;
 use uuid::Uuid;
 use rusqlite::Connection;
@@ -9,13 +9,14 @@ pub mod msgs;
 mod tables;
 
 use db::DB;
-use market::types::{ID, Dollars, User, IOU, Transfer, Cond, Entity, Rel, Pred, Depend};
-use market::tables::{MarketRow, Record, PropRow, MarketTable, UserTable, IOUTable, CondTable, OfferTable, EntityTable, RelTable, PropTable, PredTable, DependTable};
-use market::msgs::{Request, Response, Query, Item, ItemUpdate, ToItem, single_item};
+use market::types::{Cond, Depend, Dollars, Entity, Pred, Rel, Transfer, User, ID, IOU};
+use market::tables::{CondTable, DependTable, EntityTable, IOUTable, MarketRow, MarketTable,
+                     OfferTable, PredTable, PropRow, PropTable, Record, RelTable, UserTable};
+use market::msgs::{single_item, Item, ItemUpdate, Query, Request, Response, ToItem};
 
 pub struct Market {
     db: Connection,
-    pub info: MarketRow
+    pub info: MarketRow,
 }
 
 impl Market {
@@ -31,7 +32,10 @@ impl Market {
         db.create_table::<PredTable>()?;
         db.create_table::<DependTable>()?;
 
-        let info = MarketRow { version: 1, creation_time: get_time() };
+        let info = MarketRow {
+            version: 1,
+            creation_time: get_time(),
+        };
         db.insert::<MarketTable>(&info)?;
 
         Ok(Market { db: db, info: info })
@@ -62,7 +66,10 @@ impl Market {
         self.db.select::<EntityTable>().all()
     }
 
-    pub fn select_all_entity_by_type(&mut self, entity_type: &str) -> Result<Vec<Record<Entity>>, Error> {
+    pub fn select_all_entity_by_type(
+        &mut self,
+        entity_type: &str,
+    ) -> Result<Vec<Record<Entity>>, Error> {
         self.db.select::<EntityTable>().by_entity_type(entity_type)
     }
 
@@ -142,7 +149,7 @@ impl Market {
         let old_iou = r.fields;
         // FIXME access control
         if old_iou.iou_void {
-            return Err(err_msg("IOU is already void"))
+            return Err(err_msg("IOU is already void"));
         } else {
             tx.update().void_iou(&id)?;
             let mut total = Dollars::ZERO;
@@ -150,11 +157,11 @@ impl Market {
                 if *value > Dollars::ZERO {
                     total += *value;
                 } else {
-                    return Err(err_msg("IOU value must be positive"))
+                    return Err(err_msg("IOU value must be positive"));
                 }
             }
             if total != old_iou.iou_value {
-                return Err(err_msg("incorrect transfer value"))
+                return Err(err_msg("incorrect transfer value"));
             }
             for (user_id, value) in &transfer.holders {
                 let new_iou = IOU {
@@ -162,7 +169,7 @@ impl Market {
                     iou_value: *value,
                     iou_split: Some(id.clone()),
                     iou_void: *user_id == old_iou.iou_issuer,
-                    .. old_iou.clone()
+                    ..old_iou.clone()
                 };
                 let new_record = Record::new(new_iou);
                 tx.insert::<IOUTable>(&new_record)?;
@@ -178,7 +185,7 @@ impl Market {
         let mut r = tx.select::<IOUTable>().by_id(&id)?;
         // FIXME access control
         if r.fields.iou_void {
-            return Err(err_msg("IOU is already void"))
+            return Err(err_msg("IOU is already void"));
         } else {
             tx.update().void_iou(&id)?;
             r.fields.iou_void = true;
@@ -228,7 +235,12 @@ impl Market {
             }
             Query::AllOffer => {
                 // FIXME access control
-                let items = self.db.select::<OfferTable>().all()?.into_iter().map(to_item).collect();
+                let items = self.db
+                    .select::<OfferTable>()
+                    .all()?
+                    .into_iter()
+                    .map(to_item)
+                    .collect();
                 Ok(Response::Items(items))
             }
             Query::AllEntity => {
@@ -258,7 +270,7 @@ impl Market {
         match request {
             Request::Create(item) => self.do_create(item),
             Request::Update { id, item_update } => self.do_update(id, item_update),
-            Request::Query(query) => self.do_query(query)
+            Request::Query(query) => self.do_query(query),
         }
     }
 }

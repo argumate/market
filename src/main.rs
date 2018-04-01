@@ -1,17 +1,17 @@
 extern crate failure;
 extern crate getopts;
-extern crate time;
 extern crate rusqlite;
+extern crate time;
 
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
 extern crate serde_json;
 
 extern crate uuid;
 
-extern crate hyper;
 extern crate futures;
+extern crate hyper;
 
 pub mod db;
 pub mod market;
@@ -24,18 +24,19 @@ use getopts::Options;
 
 use db::DB;
 use market::Market;
-use market::types::{ID, Dollars, ArgList, User, IOU, Transfer, Cond, Offer, OfferUpdate, Entity, Rel, Pred, Depend};
-use market::msgs::{Request, Response, Query, Item, ItemUpdate};
+use market::types::{ArgList, Cond, Depend, Dollars, Entity, Offer, OfferUpdate, Pred, Rel,
+                    Transfer, User, ID, IOU};
+use market::msgs::{Item, ItemUpdate, Query, Request, Response};
 use server::run_server;
 
 struct CmdLine {
     config: Config,
-    command: Command
+    command: Command,
 }
 
 struct Config {
     help: bool,
-    db_filename: String
+    db_filename: String,
 }
 
 #[derive(Debug)]
@@ -43,7 +44,7 @@ enum Command {
     Usage,
     Init,
     Status,
-    Server(String)
+    Server(String),
 }
 
 fn parse_command_line(opts: &Options, args: &Vec<String>) -> Result<CmdLine, Error> {
@@ -54,7 +55,7 @@ fn parse_command_line(opts: &Options, args: &Vec<String>) -> Result<CmdLine, Err
         None => {
             return Err(failure::err_msg("missing --file argument"));
         }
-        Some(f) => f
+        Some(f) => f,
     };
     let config = Config { help, db_filename };
     let command = if !matches.free.is_empty() {
@@ -77,13 +78,13 @@ fn print_usage(program: &str, opts: &Options) {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     let mut opts = Options::new();
     opts.optflag("h", "help", "print help");
     opts.optopt("f", "file", "set database filename", "FILE");
 
     match main2(&opts, &args) {
-        Ok(()) => { },
+        Ok(()) => {}
         Err(e) => {
             println!("{}", e);
         }
@@ -100,10 +101,10 @@ fn main2(opts: &Options, args: &Vec<String>) -> Result<(), Error> {
             let program = &args[0];
             print_usage(&program, &opts);
             Ok(())
-        },
+        }
         Command::Init => init(&cmdline.config),
         Command::Status => status(&cmdline.config),
-        Command::Server(addr) => server(&cmdline.config, &addr)
+        Command::Server(addr) => server(&cmdline.config, &addr),
     }
 }
 
@@ -117,120 +118,126 @@ fn init(config: &Config) -> Result<(), Error> {
     let db = DB::open_read_write(&config.db_filename)?;
     let mut market = Market::create_new(db)?;
 
-    let mrfoo = market.do_request(Request::Create(
-        Item::User(User {
+    let mrfoo = market
+        .do_request(Request::Create(Item::User(User {
             user_name: String::from("Mr Foo"),
-            user_locked: false
-        })))?.unwrap_id();
+            user_locked: false,
+        })))?
+        .unwrap_id();
 
-    let mrbar = market.do_request(Request::Create(
-        Item::User(User {
+    let mrbar = market
+        .do_request(Request::Create(Item::User(User {
             user_name: String::from("Mr Bar"),
-            user_locked: false
-        })))?.unwrap_id();
+            user_locked: false,
+        })))?
+        .unwrap_id();
 
-    let trump = market.do_request(Request::Create(
-        Item::Entity(Entity {
+    let trump = market
+        .do_request(Request::Create(Item::Entity(Entity {
             entity_name: String::from("Donald Trump"),
             entity_type: String::from("person"),
-        })))?.unwrap_id();
+        })))?
+        .unwrap_id();
 
-    let jeb = market.do_request(Request::Create(
-        Item::Entity(Entity {
+    let jeb = market
+        .do_request(Request::Create(Item::Entity(Entity {
             entity_name: String::from("Jeb Bush"),
             entity_type: String::from("person"),
-        })))?.unwrap_id();
+        })))?
+        .unwrap_id();
 
-    let repub = market.do_request(Request::Create(
-        Item::Entity(Entity {
+    let repub = market
+        .do_request(Request::Create(Item::Entity(Entity {
             entity_name: String::from("Republican Party"),
             entity_type: String::from("party"),
-        })))?.unwrap_id();
+        })))?
+        .unwrap_id();
 
-    let _dem = market.do_request(Request::Create(
-        Item::Entity(Entity {
+    let _dem = market
+        .do_request(Request::Create(Item::Entity(Entity {
             entity_name: String::from("Democratic Party"),
             entity_type: String::from("party"),
-        })))?.unwrap_id();
+        })))?
+        .unwrap_id();
 
-    market.do_request(Request::Create(
-        Item::Rel(Rel {
-            rel_type: String::from("party"),
-            rel_from: jeb,
-            rel_to: repub.clone(),
-        })))?;
+    market.do_request(Request::Create(Item::Rel(Rel {
+        rel_type: String::from("party"),
+        rel_from: jeb,
+        rel_to: repub.clone(),
+    })))?;
 
-    market.do_request(Request::Create(
-        Item::Rel(Rel {
-            rel_type: String::from("party"),
-            rel_from: trump.clone(),
-            rel_to: repub,
-        })))?;
+    market.do_request(Request::Create(Item::Rel(Rel {
+        rel_type: String::from("party"),
+        rel_from: trump.clone(),
+        rel_to: repub,
+    })))?;
 
-    let nominee2020 = market.do_request(Request::Create(
-        Item::Pred(Pred {
+    let nominee2020 = market
+        .do_request(Request::Create(Item::Pred(Pred {
             pred_name: String::from("Party nominee for 2020 election"),
             pred_args: ArgList::from("party,person"),
-            pred_value: None
-        })))?.unwrap_id();
+            pred_value: None,
+        })))?
+        .unwrap_id();
 
-    let candidate2020 = market.do_request(Request::Create(
-        Item::Pred(Pred {
+    let candidate2020 = market
+        .do_request(Request::Create(Item::Pred(Pred {
             pred_name: String::from("Candidate wins 2020 election"),
             pred_args: ArgList::from("person"),
-            pred_value: None
-        })))?.unwrap_id();
+            pred_value: None,
+        })))?
+        .unwrap_id();
 
-    let party2020 = market.do_request(Request::Create(
-        Item::Pred(Pred {
+    let party2020 = market
+        .do_request(Request::Create(Item::Pred(Pred {
             pred_name: String::from("Party wins 2020 election"),
             pred_args: ArgList::from("party"),
-            pred_value: None
-        })))?.unwrap_id();
+            pred_value: None,
+        })))?
+        .unwrap_id();
 
-    market.do_request(Request::Create(
-        Item::Depend(Depend {
-            depend_type: String::from("requires"),
-            depend_pred1: candidate2020.clone(),
-            depend_pred2: nominee2020,
-            depend_vars: ArgList::from("x"),
-            depend_args1: ArgList::from("x"),
-            depend_args2: ArgList::from("x.party, x")
-        })))?;
+    market.do_request(Request::Create(Item::Depend(Depend {
+        depend_type: String::from("requires"),
+        depend_pred1: candidate2020.clone(),
+        depend_pred2: nominee2020,
+        depend_vars: ArgList::from("x"),
+        depend_args1: ArgList::from("x"),
+        depend_args2: ArgList::from("x.party, x"),
+    })))?;
 
-    market.do_request(Request::Create(
-        Item::Depend(Depend {
-            depend_type: String::from("implies"),
-            depend_pred1: candidate2020.clone(),
-            depend_pred2: party2020,
-            depend_vars: ArgList::from("x"),
-            depend_args1: ArgList::from("x"),
-            depend_args2: ArgList::from("x.party")
-        })))?;
+    market.do_request(Request::Create(Item::Depend(Depend {
+        depend_type: String::from("implies"),
+        depend_pred1: candidate2020.clone(),
+        depend_pred2: party2020,
+        depend_vars: ArgList::from("x"),
+        depend_args1: ArgList::from("x"),
+        depend_args2: ArgList::from("x.party"),
+    })))?;
 
-    market.do_request(Request::Create(
-        Item::Pred(Pred {
-            pred_name: String::from("Atmospheric CO2 levels pass 500ppm"),
-            pred_args: ArgList::from("time"),
-            pred_value: None
-        })))?;
+    market.do_request(Request::Create(Item::Pred(Pred {
+        pred_name: String::from("Atmospheric CO2 levels pass 500ppm"),
+        pred_args: ArgList::from("time"),
+        pred_value: None,
+    })))?;
 
-    let trump_elected = market.do_request(Request::Create(
-        Item::Cond(Cond {
+    let trump_elected = market
+        .do_request(Request::Create(Item::Cond(Cond {
             cond_pred: candidate2020.clone(),
             cond_args: vec![trump.clone()],
-        })))?.unwrap_id();
+        })))?
+        .unwrap_id();
 
-    let offer_id = market.do_request(Request::Create(
-        Item::Offer(Offer {
+    let offer_id = market
+        .do_request(Request::Create(Item::Offer(Offer {
             offer_user: mrfoo.clone(),
             offer_cond_id: trump_elected.clone(),
             offer_cond_time: None,
             offer_buy_price: Dollars::from_millibucks(340),
             offer_sell_price: Dollars::from_millibucks(450),
             offer_buy_quantity: 100,
-            offer_sell_quantity: 200
-        })))?.unwrap_id();
+            offer_sell_quantity: 200,
+        })))?
+        .unwrap_id();
 
     market.do_request(Request::Update {
         id: offer_id,
@@ -238,11 +245,12 @@ fn init(config: &Config) -> Result<(), Error> {
             offer_buy_price: Dollars::from_millibucks(360),
             offer_sell_price: Dollars::from_millibucks(430),
             offer_buy_quantity: 150,
-            offer_sell_quantity: 180
-        })})?;
+            offer_sell_quantity: 180,
+        }),
+    })?;
 
-    let iou_id = market.do_request(Request::Create(
-        Item::IOU(IOU {
+    let iou_id = market
+        .do_request(Request::Create(Item::IOU(IOU {
             iou_issuer: mrfoo.clone(),
             iou_holder: mrbar.clone(),
             iou_value: Dollars::from_millibucks(170),
@@ -250,9 +258,10 @@ fn init(config: &Config) -> Result<(), Error> {
             iou_cond_flag: true,
             iou_cond_time: None,
             iou_split: None,
-            iou_void: false
-        })))?.unwrap_id();
-/*
+            iou_void: false,
+        })))?
+        .unwrap_id();
+    /*
     market.do_request(Request::Update {
         id: iou_id,
         item_update: ItemUpdate::Void
@@ -265,7 +274,7 @@ fn init(config: &Config) -> Result<(), Error> {
 
     market.do_request(Request::Update {
         id: iou_id,
-        item_update: ItemUpdate::Transfer(transfer)
+        item_update: ItemUpdate::Transfer(transfer),
     })?;
 
     Ok(())
@@ -291,7 +300,7 @@ impl Response {
         match self {
             Response::Created(id) => id,
             Response::Updated => panic!("expected ID!"),
-            Response::Items(_) => panic!("expected ID!")
+            Response::Items(_) => panic!("expected ID!"),
         }
     }
 

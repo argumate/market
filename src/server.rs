@@ -44,7 +44,7 @@ fn make_ok(str: String) -> HttpResponse {
     HttpResponse::Ok().body(str)
 }
 
-fn handle_post(req: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+fn handle_post(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
     let tx = req.state().channel.lock().unwrap().clone();
     // req.payload().concat2() gives denial of service on big payloads
     req.body()
@@ -107,7 +107,7 @@ pub fn run_server(market: Market, addr_str: &str) -> Result<(), Error> {
 
     let _ = server::new(move || {
         App::with_state(AppState { channel: arc_mutex_tx.clone(), })
-            .resource("/", |r| r.post().with(handle_post))
+            .resource("/", |r| r.post().a(handle_post))
     }).bind(addr_str)?.start();
 
     let _ = sys.run();

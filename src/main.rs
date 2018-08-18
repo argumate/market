@@ -11,7 +11,8 @@ extern crate serde_json;
 extern crate uuid;
 
 extern crate futures;
-extern crate hyper;
+extern crate actix;
+extern crate actix_web;
 
 pub mod db;
 pub mod market;

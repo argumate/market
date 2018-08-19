@@ -112,7 +112,6 @@ impl User {
     }
 
     pub fn user_name_stripped(user_name: &str) -> String {
-        // FIXME can use string_retain on nightly
         user_name.chars().filter(char::is_ascii_alphanumeric).collect()
     }
 }
@@ -210,6 +209,13 @@ fn dollars_ord() {
     assert!(Dollars::from_millibucks(1) > Dollars::ZERO);
     assert!(Dollars::from_millibucks(-1) < Dollars::ZERO);
     assert!(Dollars::from_millibucks(0) == Dollars::ZERO);
+}
+
+#[test]
+fn user_name_stripped1() {
+    assert_eq!(User::user_name_stripped("abcdef"), "abcdef");
+    assert_eq!(User::user_name_stripped("abc-def"), "abcdef");
+    assert_eq!(User::user_name_stripped(" abc.123 "), "abc123");
 }
 
 // vi: ts=8 sts=4 et

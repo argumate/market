@@ -25,7 +25,7 @@ use getopts::Options;
 
 use db::DB;
 use market::Market;
-use market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferUpdate, Pred,
+use market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferDetails, Pred,
                     Rel, Timesecs, Transfer, User, ID, IOU};
 use market::msgs::{Item, ItemUpdate, Query, Request, Response};
 use server::run_server;
@@ -240,16 +240,18 @@ fn init(config: &Config) -> Result<(), Error> {
             offer_user: mrfoo.clone(),
             offer_cond_id: trump_elected.clone(),
             offer_cond_time: None,
-            offer_buy_price: Dollars::from_millibucks(340),
-            offer_sell_price: Dollars::from_millibucks(450),
-            offer_buy_quantity: 100,
-            offer_sell_quantity: 200,
+            offer_details: OfferDetails {
+                offer_buy_price: Dollars::from_millibucks(340),
+                offer_sell_price: Dollars::from_millibucks(450),
+                offer_buy_quantity: 100,
+                offer_sell_quantity: 200,
+            }
         })))?
         .unwrap_id();
 
     market.do_request(Request::Update {
         id: offer_id,
-        item_update: ItemUpdate::Offer(OfferUpdate {
+        item_update: ItemUpdate::Offer(OfferDetails {
             offer_buy_price: Dollars::from_millibucks(360),
             offer_sell_price: Dollars::from_millibucks(430),
             offer_buy_quantity: 150,

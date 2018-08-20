@@ -58,14 +58,11 @@ pub struct Offer {
     pub offer_user: ID,
     pub offer_cond_id: ID,
     pub offer_cond_time: Option<Timesecs>,
-    pub offer_buy_price: Dollars,
-    pub offer_sell_price: Dollars,
-    pub offer_buy_quantity: u32,
-    pub offer_sell_quantity: u32,
+    pub offer_details : OfferDetails,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OfferUpdate {
+pub struct OfferDetails {
     pub offer_buy_price: Dollars,
     pub offer_sell_price: Dollars,
     pub offer_buy_quantity: u32,

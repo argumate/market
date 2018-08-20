@@ -6,7 +6,7 @@ use rusqlite::Row;
 use rusqlite::types::{FromSql, ToSql, ToSqlOutput, Value, ValueRef};
 
 use db::{Select, Table, Update};
-use market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferUpdate, Pred,
+use market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferDetails, Pred,
                     Rel, Timesecs, User, ID, IOU};
 
 pub struct MarketTable {}
@@ -422,10 +422,12 @@ impl Table for OfferTable {
                 offer_user,
                 offer_cond_id,
                 offer_cond_time,
-                offer_buy_price,
-                offer_sell_price,
-                offer_buy_quantity,
-                offer_sell_quantity,
+                offer_details: OfferDetails {
+                    offer_buy_price,
+                    offer_sell_price,
+                    offer_buy_quantity,
+                    offer_sell_quantity,
+                }
             },
             creation_time,
         })
@@ -440,17 +442,17 @@ impl Table for OfferTable {
                 &r.fields.offer_user,
                 &r.fields.offer_cond_id,
                 &r.fields.offer_cond_time,
-                &r.fields.offer_buy_price,
-                &r.fields.offer_sell_price,
-                &r.fields.offer_buy_quantity,
-                &r.fields.offer_sell_quantity,
+                &r.fields.offer_details.offer_buy_price,
+                &r.fields.offer_details.offer_sell_price,
+                &r.fields.offer_details.offer_buy_quantity,
+                &r.fields.offer_details.offer_sell_quantity,
                 &r.creation_time
             ])
     }
 }
 
 impl<'a> Update<'a, OfferTable> {
-    pub fn update_offer(&self, id: &ID, offer: &OfferUpdate) -> Result<(), Error> {
+    pub fn update_offer(&self, id: &ID, offer: &OfferDetails) -> Result<(), Error> {
         self.update_one(
             "offer_buy_price = ?2, offer_sell_price = ?3,
             offer_buy_quantity = ?4, offer_sell_quantity = ?5

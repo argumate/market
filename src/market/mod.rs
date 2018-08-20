@@ -9,7 +9,7 @@ pub mod msgs;
 mod tables;
 
 use db::DB;
-use market::types::{Cond, Depend, Dollars, Entity, Pred, Rel, Transfer, User, ID, IOU};
+use market::types::{Cond, Depend, Entity, Pred, Rel, Transfer, User, ID, IOU};
 use market::tables::{CondTable, DependTable, EntityTable, IOUTable, IdentityTable, MarketRow,
                      MarketTable, OfferTable, PredTable, PropRow, PropTable, Record, RelTable,
                      UserTable};
@@ -168,33 +168,19 @@ impl Market {
         let r = tx.select::<IOUTable>().by_id(&id)?;
         let old_iou = r.fields;
         // FIXME access control
-        if old_iou.iou_void {
-            return Err(err_msg("IOU is already void"));
-        } else {
-            tx.update().void_iou(&id)?;
-            let mut total = Dollars::ZERO;
-            for (_, value) in &transfer.holders {
-                if *value > Dollars::ZERO {
-                    total += *value;
-                } else {
-                    return Err(err_msg("IOU value must be positive"));
-                }
-            }
-            if total != old_iou.iou_value {
-                return Err(err_msg("incorrect transfer value"));
-            }
-            for (user_id, value) in &transfer.holders {
-                let new_iou = IOU {
-                    iou_holder: user_id.clone(),
-                    iou_value: *value,
-                    iou_split: Some(id.clone()),
-                    iou_void: *user_id == old_iou.iou_issuer,
-                    ..old_iou.clone()
-                };
-                let new_record = Record::new(new_iou);
-                tx.insert::<IOUTable>(&new_record)?;
-                ious.insert(new_record.id, new_record.fields.to_item());
-            }
+        transfer.valid(&old_iou)?;
+        tx.update().void_iou(&id)?;
+        for (user_id, value) in &transfer.holders {
+            let new_iou = IOU {
+                iou_holder: user_id.clone(),
+                iou_value: *value,
+                iou_split: Some(id.clone()),
+                iou_void: *user_id == old_iou.iou_issuer,
+                ..old_iou.clone()
+            };
+            let new_record = Record::new(new_iou);
+            tx.insert::<IOUTable>(&new_record)?;
+            ious.insert(new_record.id, new_record.fields.to_item());
         }
         tx.commit()?;
         Ok(ious)

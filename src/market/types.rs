@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
+use failure::{err_msg, Error};
 use time::Timespec;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -118,6 +119,28 @@ impl OfferDetails {
         Dollars::ZERO <= self.offer_buy_price &&
         self.offer_buy_price < self.offer_sell_price &&
         self.offer_sell_price <= Dollars::ONE
+    }
+}
+
+impl Transfer {
+    pub fn valid(&self, old_iou: &IOU) -> Result<(), Error> {
+        if old_iou.iou_void {
+            return Err(err_msg("transfer IOU cannot be void"));
+        }
+        let mut total = old_iou.iou_value;
+        for (_, value) in &self.holders {
+            if *value <= Dollars::ZERO {
+                return Err(err_msg("transfer value must be positive"));
+            }
+            if *value > total {
+                return Err(err_msg("transfer value too large"));
+            }
+            total -= *value;
+        }
+        if total != Dollars::ZERO {
+            return Err(err_msg("transfer value too small"));
+        }
+        Ok(())
     }
 }
 

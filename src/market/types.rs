@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ops::{Add, AddAssign, Sub};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 use time::Timespec;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -142,17 +142,23 @@ impl Add for Dollars {
     }
 }
 
+impl Sub for Dollars {
+    type Output = Dollars;
+
+    fn sub(self, other: Dollars) -> Dollars {
+        Dollars(self.0 - other.0)
+    }
+}
+
 impl AddAssign for Dollars {
     fn add_assign(&mut self, other: Dollars) {
         self.0 += other.0
     }
 }
 
-impl Sub for Dollars {
-    type Output = Dollars;
-
-    fn sub(self, other: Dollars) -> Dollars {
-        Dollars(self.0 - other.0)
+impl SubAssign for Dollars {
+    fn sub_assign(&mut self, other: Dollars) {
+        self.0 -= other.0
     }
 }
 

@@ -9,7 +9,6 @@ pub mod msgs;
 mod tables;
 
 use db::DB;
-use market;
 use market::types::{Cond, Depend, Dollars, Entity, Pred, Rel, Transfer, User, ID, IOU};
 use market::tables::{CondTable, DependTable, EntityTable, IOUTable, IdentityTable, MarketRow,
                      MarketTable, OfferTable, PredTable, PropRow, PropTable, Record, RelTable,
@@ -98,14 +97,14 @@ impl Market {
                         .by_user_name_stripped(&user_name_stripped)
                     {
                         // user_name must still be unique without punctuation
-                        Ok(Response::Error(market::msgs::Error::CannotCreateUser))
+                        Ok(Response::Error(msgs::Error::CannotCreateUser))
                     } else {
                         let record = Record::new(user);
                         self.db.insert::<UserTable>(&record)?;
                         Ok(Response::Created(record.id))
                     }
                 } else {
-                    Ok(Response::Error(market::msgs::Error::CannotCreateUser))
+                    Ok(Response::Error(msgs::Error::CannotCreateUser))
                 }
             }
             Item::Identity(identity) => {
@@ -127,10 +126,14 @@ impl Market {
                 Ok(Response::Created(record.id))
             }
             Item::Offer(offer) => {
-                // FIXME validation
-                let record = Record::new(offer);
-                self.db.insert::<OfferTable>(&record)?;
-                Ok(Response::Created(record.id))
+                if offer.offer_details.valid() {
+                    // FIXME validation
+                    let record = Record::new(offer);
+                    self.db.insert::<OfferTable>(&record)?;
+                    Ok(Response::Created(record.id))
+                } else {
+                    Ok(Response::Error(msgs::Error::InvalidOfferDetails))
+                }
             }
             Item::Entity(entity) => {
                 // FIXME validation
@@ -213,10 +216,14 @@ impl Market {
 
     pub fn do_update(&mut self, id: ID, item_update: ItemUpdate) -> Result<Response, Error> {
         match item_update {
-            ItemUpdate::Offer(offer) => {
-                // FIXME access control
-                self.db.update::<OfferTable>().update_offer(&id, &offer)?;
-                Ok(Response::Updated)
+            ItemUpdate::Offer(offer_details) => {
+                if offer_details.valid() {
+                    // FIXME access control
+                    self.db.update::<OfferTable>().update_offer(&id, &offer_details)?;
+                    Ok(Response::Updated)
+                } else {
+                    Ok(Response::Error(msgs::Error::InvalidOfferDetails))
+                }
             }
             ItemUpdate::Transfer(transfer) => {
                 let items = self.do_iou_transfer(id, &transfer)?;

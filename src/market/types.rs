@@ -113,8 +113,17 @@ impl User {
     }
 }
 
+impl OfferDetails {
+    pub fn valid(&self) -> bool {
+        Dollars::ZERO <= self.offer_buy_price &&
+        self.offer_buy_price < self.offer_sell_price &&
+        self.offer_sell_price <= Dollars::ONE
+    }
+}
+
 impl Dollars {
     pub const ZERO: Self = Dollars(0);
+    pub const ONE: Self = Dollars(1000);
 
     pub fn from_millibucks(m: i64) -> Self {
         Dollars(m)

@@ -48,6 +48,7 @@ pub enum Query {
 pub enum Error {
     InvalidUserName,
     CannotCreateUser,
+    InvalidOfferDetails,
 }
 
 #[derive(Serialize)]

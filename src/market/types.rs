@@ -122,6 +122,15 @@ impl OfferDetails {
     }
 }
 
+impl IOU {
+    pub fn valid(&self) -> Result<(), Error> {
+        if self.iou_value <= Dollars::ZERO {
+            return Err(err_msg("IOU value must be positive"));
+        }
+        Ok(())
+    }
+}
+
 impl Transfer {
     pub fn valid(&self, old_iou: &IOU) -> Result<(), Error> {
         if old_iou.iou_void {

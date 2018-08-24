@@ -114,6 +114,7 @@ impl Market {
                 Ok(Response::Created(record.id))
             }
             Item::IOU(iou) => {
+                iou.valid()?;
                 // FIXME validation
                 let record = Record::new(iou);
                 self.db.insert::<IOUTable>(&record)?;

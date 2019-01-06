@@ -58,24 +58,24 @@ has a different probability of being true) then a trade can take place.
 
 Here is a concrete example of compatible offers leading to a trade:
 
-Offer from Player 1
+Alice offers:
  - BUY @ 50¢
  - SELL @ 60¢
 
-Offer from Player 2
+Bob offers:
  - BUY @ 30¢
  - SELL @ 40¢
 
-These offers result in a market clearing fair price of 45¢ for Player 1 to buy
-from Player 2. However, making the actual trade involves an exchange of IOUs
-with inverse conditions and prices:
+These offers result in a market clearing fair price of 45¢ for Alice to buy
+from Bob. However, making the actual trade involves an exchange of IOUs with
+inverse conditions and prices:
 
- - Player 1 issues a negated conditional IOU for 45¢ to Player 2
- - Player 2 issues a conditional IOU for 55¢ ($1 - 45¢) to Player 1
+ - Alice issues a negated conditional IOU for 45¢ to Bob
+ - Bob issues a conditional IOU for 55¢ ($1 - 45¢) to Alice
 
-If the condition is true, then Player 1 will have earned 55¢, equivalent to
-purchasing a $1 asset for 45¢. If the condition is false, then Player 2 will
-have earned 45¢, equivalent to selling an asset worth nothing for 45¢.
+If the condition is true, then Alice will have earned 55¢, equivalent to
+purchasing a $1 asset for 45¢. If the condition is false, then Bob will have
+earned 45¢, equivalent to selling an asset worth nothing for 45¢.
 
 (Note that specifying a very low sell price or very high buy price risks a
 large loss for a small gain, so exercise caution!)

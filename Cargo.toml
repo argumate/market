@@ -5,6 +5,7 @@ authors = ["Argumate <argumate@argumate.com>"]
 readme = "README.md"
 license = "Apache-2.0"
 homepage = "https://github.com/argumate/market"
+edition = "2018"
 
 [dependencies]
 time = "0.1.38"

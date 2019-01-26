@@ -5,8 +5,8 @@ use rusqlite;
 use rusqlite::Row;
 use rusqlite::types::{FromSql, ToSql, ToSqlOutput, Value, ValueRef};
 
-use db::{Select, Table, Update};
-use market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferDetails, Pred,
+use crate::db::{Select, Table, Update};
+use crate::market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferDetails, Pred,
                     Rel, Timesecs, User, ID, IOU};
 
 pub struct MarketTable {}

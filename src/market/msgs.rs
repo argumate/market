@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use market::types::{Cond, Depend, Entity, Identity, Offer, OfferDetails, Pred, Rel, Transfer, User,
+use crate::market::types::{Cond, Depend, Entity, Identity, Offer, OfferDetails, Pred, Rel, Transfer, User,
                     ID, IOU};
 
 #[derive(Serialize, Deserialize)]

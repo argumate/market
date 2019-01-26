@@ -14,8 +14,7 @@ use actix_web::{App, AsyncResponder, HttpMessage, HttpRequest, HttpResponse, Fut
 use actix_web::error;
 use actix_web::server;
 
-use market;
-use market::Market;
+use crate::market::{self, Market};
 
 type ResponseFuture = futures::sync::oneshot::Sender<market::msgs::Response>;
 

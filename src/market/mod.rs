@@ -8,12 +8,12 @@ pub mod types;
 pub mod msgs;
 mod tables;
 
-use db::DB;
-use market::types::{Cond, Depend, Entity, Pred, Rel, Transfer, User, ID, IOU};
-use market::tables::{CondTable, DependTable, EntityTable, IOUTable, IdentityTable, MarketRow,
+use crate::db::DB;
+use crate::market::types::{Cond, Depend, Entity, Pred, Rel, Transfer, User, ID, IOU};
+use crate::market::tables::{CondTable, DependTable, EntityTable, IOUTable, IdentityTable, MarketRow,
                      MarketTable, OfferTable, PredTable, PropRow, PropTable, Record, RelTable,
                      UserTable};
-use market::msgs::{single_item, Item, ItemUpdate, Query, Request, Response, ToItem};
+use crate::market::msgs::{single_item, Item, ItemUpdate, Query, Request, Response, ToItem};
 
 pub struct Market {
     db: Connection,

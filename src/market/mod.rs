@@ -90,8 +90,7 @@ impl Market {
     pub fn do_create(&mut self, item: Item) -> Result<Response, Error> {
         match item {
             Item::User(user) => {
-                if User::valid_user_name(&user.user_name) {
-                    let user_name_stripped = User::user_name_stripped(&user.user_name);
+                if let Some(user_name_stripped) = User::valid_user_name_stripped(&user.user_name) {
                     if let Ok(_) = self.db
                         .select::<UserTable>()
                         .by_user_name_stripped(&user_name_stripped)

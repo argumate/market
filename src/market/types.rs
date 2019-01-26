@@ -101,8 +101,17 @@ pub struct Depend {
 }
 
 impl User {
-    pub fn valid_user_name(user_name: &str) -> bool {
-        user_name.chars().all(User::valid_user_name_char)
+    pub fn valid_user_name_stripped(user_name: &str) -> Option<String> {
+        if user_name.chars().all(User::valid_user_name_char) {
+            let user_name_stripped = User::user_name_stripped(user_name);
+            if user_name_stripped.is_empty() {
+                None
+            } else {
+                Some(user_name_stripped)
+            }
+        } else {
+            None
+        }
     }
 
     fn valid_user_name_char(c: char) -> bool {
@@ -110,7 +119,9 @@ impl User {
     }
 
     pub fn user_name_stripped(user_name: &str) -> String {
-        user_name.chars().filter(char::is_ascii_alphanumeric).collect()
+        let mut user_name_stripped : String = user_name.chars().filter(char::is_ascii_alphanumeric).collect();
+        user_name_stripped.make_ascii_lowercase();
+        user_name_stripped
     }
 }
 

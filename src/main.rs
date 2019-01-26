@@ -10,24 +10,26 @@ extern crate serde_json;
 
 extern crate uuid;
 
-extern crate futures;
 extern crate actix;
 extern crate actix_web;
+extern crate futures;
 
 pub mod db;
 pub mod market;
 pub mod server;
 
-use std::env;
-use std::collections::HashMap;
 use failure::Error;
 use getopts::Options;
+use std::collections::HashMap;
+use std::env;
 
 use db::DB;
-use market::Market;
-use market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferDetails, Pred,
-                    Rel, Timesecs, Transfer, User, ID, IOU};
 use market::msgs::{Item, ItemUpdate, Query, Request, Response};
+use market::types::{
+    ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferDetails, Pred, Rel, Timesecs,
+    Transfer, User, ID, IOU,
+};
+use market::Market;
 use server::run_server;
 
 struct CmdLine {
@@ -245,7 +247,7 @@ fn init(config: &Config) -> Result<(), Error> {
                 offer_sell_price: Dollars::from_millibucks(450),
                 offer_buy_quantity: 100,
                 offer_sell_quantity: 200,
-            }
+            },
         })))?
         .unwrap_id();
 
@@ -272,11 +274,11 @@ fn init(config: &Config) -> Result<(), Error> {
         })))?
         .unwrap_id();
     /*
-    market.do_request(Request::Update {
-        id: iou_id,
-        item_update: ItemUpdate::Void
-    })?;
-*/
+        market.do_request(Request::Update {
+            id: iou_id,
+            item_update: ItemUpdate::Void
+        })?;
+    */
     let mut holders = HashMap::new();
     holders.insert(mrfoo.clone(), Dollars::from_millibucks(120));
     holders.insert(mrbar.clone(), Dollars::from_millibucks(50));

@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::market::types::{Cond, Depend, Entity, Identity, Offer, OfferDetails, Pred, Rel, Transfer, User,
-                    ID, IOU};
+use crate::market::types::{
+    Cond, Depend, Entity, Identity, Offer, OfferDetails, Pred, Rel, Transfer, User, ID, IOU,
+};
 
 #[derive(Serialize, Deserialize)]
 pub enum Request {

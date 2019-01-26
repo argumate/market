@@ -1,6 +1,6 @@
+use failure::{err_msg, Error};
 use std::collections::HashMap;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
-use failure::{err_msg, Error};
 use time::Timespec;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -59,7 +59,7 @@ pub struct Offer {
     pub offer_user: ID,
     pub offer_cond_id: ID,
     pub offer_cond_time: Option<Timesecs>,
-    pub offer_details : OfferDetails,
+    pub offer_details: OfferDetails,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -119,7 +119,10 @@ impl User {
     }
 
     pub fn user_name_stripped(user_name: &str) -> String {
-        let mut user_name_stripped : String = user_name.chars().filter(char::is_ascii_alphanumeric).collect();
+        let mut user_name_stripped: String = user_name
+            .chars()
+            .filter(char::is_ascii_alphanumeric)
+            .collect();
         user_name_stripped.make_ascii_lowercase();
         user_name_stripped
     }
@@ -127,9 +130,9 @@ impl User {
 
 impl OfferDetails {
     pub fn valid(&self) -> bool {
-        Dollars::ZERO <= self.offer_buy_price &&
-        self.offer_buy_price < self.offer_sell_price &&
-        self.offer_sell_price <= Dollars::ONE
+        Dollars::ZERO <= self.offer_buy_price
+            && self.offer_buy_price < self.offer_sell_price
+            && self.offer_sell_price <= Dollars::ONE
     }
 }
 

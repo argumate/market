@@ -1,19 +1,20 @@
-use std::collections::HashMap;
 use failure::{err_msg, Error};
+use rusqlite::Connection;
+use std::collections::HashMap;
 use time::get_time;
 use uuid::Uuid;
-use rusqlite::Connection;
 
-pub mod types;
 pub mod msgs;
 mod tables;
+pub mod types;
 
 use crate::db::DB;
-use crate::market::types::{Cond, Depend, Entity, Pred, Rel, Transfer, User, ID, IOU};
-use crate::market::tables::{CondTable, DependTable, EntityTable, IOUTable, IdentityTable, MarketRow,
-                     MarketTable, OfferTable, PredTable, PropRow, PropTable, Record, RelTable,
-                     UserTable};
 use crate::market::msgs::{single_item, Item, ItemUpdate, Query, Request, Response, ToItem};
+use crate::market::tables::{
+    CondTable, DependTable, EntityTable, IOUTable, IdentityTable, MarketRow, MarketTable,
+    OfferTable, PredTable, PropRow, PropTable, Record, RelTable, UserTable,
+};
+use crate::market::types::{Cond, Depend, Entity, Pred, Rel, Transfer, User, ID, IOU};
 
 pub struct Market {
     db: Connection,
@@ -91,7 +92,8 @@ impl Market {
         match item {
             Item::User(user) => {
                 if let Some(user_name_stripped) = User::valid_user_name_stripped(&user.user_name) {
-                    if let Ok(_) = self.db
+                    if let Ok(_) = self
+                        .db
                         .select::<UserTable>()
                         .by_user_name_stripped(&user_name_stripped)
                     {
@@ -205,7 +207,9 @@ impl Market {
             ItemUpdate::Offer(offer_details) => {
                 if offer_details.valid() {
                     // FIXME access control
-                    self.db.update::<OfferTable>().update_offer(&id, &offer_details)?;
+                    self.db
+                        .update::<OfferTable>()
+                        .update_offer(&id, &offer_details)?;
                     Ok(Response::Updated)
                 } else {
                     Ok(Response::Error(msgs::Error::InvalidOfferDetails))
@@ -245,7 +249,8 @@ impl Market {
             }
             Query::AllOffer => {
                 // FIXME access control
-                let items = self.db
+                let items = self
+                    .db
                     .select::<OfferTable>()
                     .all()?
                     .into_iter()

@@ -1,7 +1,7 @@
+use failure::{err_msg, Error};
 use std::str;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use failure::{err_msg, Error};
 
 use futures;
 use futures::future::Future;
@@ -10,9 +10,9 @@ use futures::sync::oneshot;
 use serde_json;
 
 use actix;
-use actix_web::{App, AsyncResponder, HttpMessage, HttpRequest, HttpResponse, FutureResponse};
 use actix_web::error;
 use actix_web::server;
+use actix_web::{App, AsyncResponder, FutureResponse, HttpMessage, HttpRequest, HttpResponse};
 
 use crate::market::{self, Market};
 
@@ -62,21 +62,19 @@ fn handle_post(req: &HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
             futures::future::result(tx.send((msg, reply)))
                 .map_err(|_| AppError::Canceled)
                 .and_then(|_| {
-                    on_reply.map_err(|_| AppError::Canceled).and_then(
-                        |market_reply| {
-                            serde_json::to_string(&market_reply)
-                                .map_err(|e| AppError::Json(e))
-                        },
-                    )
+                    on_reply
+                        .map_err(|_| AppError::Canceled)
+                        .and_then(|market_reply| {
+                            serde_json::to_string(&market_reply).map_err(|e| AppError::Json(e))
+                        })
                 })
         })
         .flatten()
-        .then(|r| {
-            match r {
-                Ok(s) => Ok(make_ok(s)),
-                Err(e) => Ok(make_error(e)),
-            }
-        }).responder()
+        .then(|r| match r {
+            Ok(s) => Ok(make_ok(s)),
+            Err(e) => Ok(make_error(e)),
+        })
+        .responder()
 }
 
 fn work_thread(
@@ -89,10 +87,10 @@ fn work_thread(
             AppMsg::Request(req) => {
                 let response = market.do_request(req)?;
                 match reply.send(response) {
-                    Ok(()) => {},
+                    Ok(()) => {}
                     Err(_req) => return Err(err_msg("http thread not responding")),
                 }
-            },
+            }
         }
     }
 }
@@ -105,9 +103,13 @@ pub fn run_server(market: Market, addr_str: &str) -> Result<(), Error> {
     let arc_mutex_tx = Arc::new(Mutex::new(tx));
 
     let _ = server::new(move || {
-        App::with_state(AppState { channel: arc_mutex_tx.clone(), })
-            .resource("/", |r| r.post().a(handle_post))
-    }).bind(addr_str)?.start();
+        App::with_state(AppState {
+            channel: arc_mutex_tx.clone(),
+        })
+        .resource("/", |r| r.post().a(handle_post))
+    })
+    .bind(addr_str)?
+    .start();
 
     let _ = sys.run();
 

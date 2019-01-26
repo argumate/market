@@ -1,8 +1,8 @@
-use std::path::Path;
-use std::marker::PhantomData;
 use failure::{err_msg, Error};
-use rusqlite::{Connection, OpenFlags, Row};
 use rusqlite::types::ToSql;
+use rusqlite::{Connection, OpenFlags, Row};
+use std::marker::PhantomData;
+use std::path::Path;
 
 pub struct Select<'a, T>
 where

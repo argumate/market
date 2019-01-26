@@ -2,12 +2,14 @@ use failure::{err_msg, Error};
 use time::{get_time, Timespec};
 
 use rusqlite;
-use rusqlite::Row;
 use rusqlite::types::{FromSql, ToSql, ToSqlOutput, Value, ValueRef};
+use rusqlite::Row;
 
 use crate::db::{Select, Table, Update};
-use crate::market::types::{ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferDetails, Pred,
-                    Rel, Timesecs, User, ID, IOU};
+use crate::market::types::{
+    ArgList, Cond, Depend, Dollars, Entity, Identity, Offer, OfferDetails, Pred, Rel, Timesecs,
+    User, ID, IOU,
+};
 
 pub struct MarketTable {}
 pub struct UserTable {}
@@ -427,7 +429,7 @@ impl Table for OfferTable {
                     offer_sell_price,
                     offer_buy_quantity,
                     offer_sell_quantity,
-                }
+                },
             },
             creation_time,
         })

@@ -172,14 +172,7 @@ impl Market {
         // FIXME access control
         transfer.valid(&old_iou)?;
         tx.update().void_iou(&id)?;
-        for (user_id, value) in &transfer.holders {
-            let new_iou = IOU {
-                iou_holder: user_id.clone(),
-                iou_value: *value,
-                iou_split: Some(id.clone()),
-                iou_void: *user_id == old_iou.iou_issuer,
-                ..old_iou.clone()
-            };
+        for new_iou in transfer.make_ious(&id, &old_iou)? {
             let new_record = Record::new(new_iou);
             tx.insert::<IOUTable>(&new_record)?;
             ious.insert(new_record.id, new_record.fields.to_item());

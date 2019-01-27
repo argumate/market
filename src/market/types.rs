@@ -165,6 +165,24 @@ impl Transfer {
         }
         Ok(())
     }
+
+    pub fn make_ious(&self, old_id: &ID, old_iou: &IOU) -> Result<Vec<IOU>, Error> {
+        let mut ious = Vec::new();
+        for (user_id, value) in &self.holders {
+            let new_iou = IOU {
+                iou_issuer: old_iou.iou_issuer.clone(),
+                iou_holder: user_id.clone(),
+                iou_value: *value,
+                iou_cond_id: old_iou.iou_cond_id.clone(),
+                iou_cond_flag: old_iou.iou_cond_flag,
+                iou_cond_time: old_iou.iou_cond_time,
+                iou_split: Some(old_id.clone()),
+                iou_void: *user_id == old_iou.iou_issuer,
+            };
+            ious.push(new_iou);
+        }
+        Ok(ious)
+    }
 }
 
 impl Dollars {

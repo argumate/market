@@ -14,7 +14,7 @@ use crate::market::tables::{
     CondTable, DependTable, EntityTable, IOUTable, IdentityTable, MarketRow, MarketTable,
     OfferTable, PredTable, PropRow, PropTable, Record, RelTable, UserTable,
 };
-use crate::market::types::{Cond, Depend, Entity, Pred, Rel, Transfer, User, ID, IOU};
+use crate::market::types::{Cond, Depend, Entity, Pred, Rel, Timesecs, Transfer, User, ID, IOU};
 
 pub struct Market {
     db: Connection,
@@ -88,7 +88,7 @@ impl Market {
         self.db.select::<DependTable>().all()
     }
 
-    pub fn do_create(&mut self, item: Item) -> Result<Response, Error> {
+    pub fn do_create(&mut self, item: Item, time: Timesecs) -> Result<Response, Error> {
         match item {
             Item::User(user) => {
                 if let Some(user_name_stripped) = User::valid_user_name_stripped(&user.user_name) {
@@ -100,7 +100,7 @@ impl Market {
                         // user_name must still be unique without punctuation
                         Ok(Response::Error(msgs::Error::CannotCreateUser))
                     } else {
-                        let record = Record::new(user);
+                        let record = Record::new(ID::new(), user, time);
                         self.db.insert::<UserTable>(&record)?;
                         Ok(Response::Created(record.id))
                     }
@@ -110,27 +110,27 @@ impl Market {
             }
             Item::Identity(identity) => {
                 // FIXME validation
-                let record = Record::new(identity);
+                let record = Record::new(ID::new(), identity, time);
                 self.db.insert::<IdentityTable>(&record)?;
                 Ok(Response::Created(record.id))
             }
             Item::IOU(iou) => {
                 iou.valid()?;
                 // FIXME validation
-                let record = Record::new(iou);
+                let record = Record::new(ID::new(), iou, time);
                 self.db.insert::<IOUTable>(&record)?;
                 Ok(Response::Created(record.id))
             }
             Item::Cond(cond) => {
                 // FIXME validation
-                let record = Record::new(cond);
+                let record = Record::new(ID::new(), cond, time);
                 self.db.insert::<CondTable>(&record)?;
                 Ok(Response::Created(record.id))
             }
             Item::Offer(offer) => {
                 if offer.offer_details.valid() {
                     // FIXME validation
-                    let record = Record::new(offer);
+                    let record = Record::new(ID::new(), offer, time);
                     self.db.insert::<OfferTable>(&record)?;
                     Ok(Response::Created(record.id))
                 } else {
@@ -139,32 +139,37 @@ impl Market {
             }
             Item::Entity(entity) => {
                 // FIXME validation
-                let record = Record::new(entity);
+                let record = Record::new(ID::new(), entity, time);
                 self.db.insert::<EntityTable>(&record)?;
                 Ok(Response::Created(record.id))
             }
             Item::Rel(rel) => {
                 // FIXME validation
-                let record = Record::new(rel);
+                let record = Record::new(ID::new(), rel, time);
                 self.db.insert::<RelTable>(&record)?;
                 Ok(Response::Created(record.id))
             }
             Item::Pred(pred) => {
                 // FIXME validation
-                let record = Record::new(pred);
+                let record = Record::new(ID::new(), pred, time);
                 self.db.insert::<PredTable>(&record)?;
                 Ok(Response::Created(record.id))
             }
             Item::Depend(depend) => {
                 // FIXME validation
-                let record = Record::new(depend);
+                let record = Record::new(ID::new(), depend, time);
                 self.db.insert::<DependTable>(&record)?;
                 Ok(Response::Created(record.id))
             }
         }
     }
 
-    fn do_iou_transfer(&mut self, id: ID, transfer: &Transfer) -> Result<HashMap<ID, Item>, Error> {
+    fn do_iou_transfer(
+        &mut self,
+        id: ID,
+        transfer: &Transfer,
+        time: Timesecs,
+    ) -> Result<HashMap<ID, Item>, Error> {
         let mut ious = HashMap::new();
         let tx = self.db.transaction()?;
         let r = tx.select::<IOUTable>().by_id(&id)?;
@@ -173,7 +178,7 @@ impl Market {
         transfer.valid(&old_iou)?;
         tx.update().void_iou(&id)?;
         for new_iou in transfer.make_ious(&id, &old_iou)? {
-            let new_record = Record::new(new_iou);
+            let new_record = Record::new(ID::new(), new_iou, time);
             tx.insert::<IOUTable>(&new_record)?;
             ious.insert(new_record.id, new_record.fields.to_item());
         }
@@ -195,7 +200,12 @@ impl Market {
         Ok(r.fields)
     }
 
-    pub fn do_update(&mut self, id: ID, item_update: ItemUpdate) -> Result<Response, Error> {
+    pub fn do_update(
+        &mut self,
+        id: ID,
+        item_update: ItemUpdate,
+        time: Timesecs,
+    ) -> Result<Response, Error> {
         match item_update {
             ItemUpdate::Offer(offer_details) => {
                 if offer_details.valid() {
@@ -209,7 +219,7 @@ impl Market {
                 }
             }
             ItemUpdate::Transfer(transfer) => {
-                let items = self.do_iou_transfer(id, &transfer)?;
+                let items = self.do_iou_transfer(id, &transfer, time)?;
                 Ok(Response::Items(items))
             }
             ItemUpdate::Void => {
@@ -275,9 +285,10 @@ impl Market {
     }
 
     pub fn do_request(&mut self, request: Request) -> Result<Response, Error> {
+        let time = Timesecs::from(get_time().sec);
         match request {
-            Request::Create(item) => self.do_create(item),
-            Request::Update { id, item_update } => self.do_update(id, item_update),
+            Request::Create(item) => self.do_create(item, time),
+            Request::Update { id, item_update } => self.do_update(id, item_update, time),
             Request::Query(query) => self.do_query(query),
         }
     }

@@ -226,14 +226,14 @@ impl SubAssign for Dollars {
     }
 }
 
-impl<'a> From<&'a Timesecs> for Timespec {
-    fn from(t: &Timesecs) -> Timespec {
+impl From<Timesecs> for Timespec {
+    fn from(t: Timesecs) -> Timespec {
         Timespec::new(t.0, 0)
     }
 }
 
-impl<'a> From<&'a Timesecs> for i64 {
-    fn from(t: &Timesecs) -> i64 {
+impl<'a> From<Timesecs> for i64 {
+    fn from(t: Timesecs) -> i64 {
         t.0
     }
 }

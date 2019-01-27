@@ -1,5 +1,5 @@
 use failure::{err_msg, Error};
-use time::{get_time, Timespec};
+use time::Timespec;
 
 use rusqlite;
 use rusqlite::types::{FromSql, ToSql, ToSqlOutput, Value, ValueRef};
@@ -44,7 +44,7 @@ impl FromSql for ID {
 
 impl ToSql for Timesecs {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput> {
-        Ok(ToSqlOutput::Owned(Value::Integer(i64::from(self))))
+        Ok(ToSqlOutput::Owned(Value::Integer(i64::from(*self))))
     }
 }
 
@@ -89,11 +89,11 @@ pub struct Record<T> {
 }
 
 impl<T> Record<T> {
-    pub fn new(t: T) -> Record<T> {
+    pub fn new(id: ID, fields: T, creation_time: Timesecs) -> Record<T> {
         Record {
-            id: ID::new(),
-            fields: t,
-            creation_time: get_time(),
+            id,
+            fields,
+            creation_time: Timespec::from(creation_time),
         }
     }
 }

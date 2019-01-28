@@ -88,7 +88,11 @@ impl Market {
         self.db.select::<DependTable>().all()
     }
 
-    pub fn do_create(&mut self, item: Item, time: Timesecs) -> Result<Response, Error> {
+    pub fn do_create(
+        &mut self,
+        item: Item,
+        time: Timesecs,
+    ) -> Result<Result<ID, msgs::Error>, Error> {
         match item {
             Item::User(user) => {
                 if let Some(user_name_stripped) = User::valid_user_name_stripped(&user.user_name) {
@@ -98,68 +102,68 @@ impl Market {
                         .by_user_name_stripped(&user_name_stripped)
                     {
                         // user_name must still be unique without punctuation
-                        Ok(Response::Error(msgs::Error::CannotCreateUser))
+                        Ok(Err(msgs::Error::CannotCreateUser))
                     } else {
                         let record = Record::new(ID::new(), user, time);
                         self.db.insert::<UserTable>(&record)?;
-                        Ok(Response::Created(record.id))
+                        Ok(Ok(record.id))
                     }
                 } else {
-                    Ok(Response::Error(msgs::Error::CannotCreateUser))
+                    Ok(Err(msgs::Error::InvalidUserName))
                 }
             }
             Item::Identity(identity) => {
                 // FIXME validation
                 let record = Record::new(ID::new(), identity, time);
                 self.db.insert::<IdentityTable>(&record)?;
-                Ok(Response::Created(record.id))
+                Ok(Ok(record.id))
             }
             Item::IOU(iou) => {
                 iou.valid()?;
                 // FIXME validation
                 let record = Record::new(ID::new(), iou, time);
                 self.db.insert::<IOUTable>(&record)?;
-                Ok(Response::Created(record.id))
+                Ok(Ok(record.id))
             }
             Item::Cond(cond) => {
                 // FIXME validation
                 let record = Record::new(ID::new(), cond, time);
                 self.db.insert::<CondTable>(&record)?;
-                Ok(Response::Created(record.id))
+                Ok(Ok(record.id))
             }
             Item::Offer(offer) => {
                 if offer.offer_details.valid() {
                     // FIXME validation
                     let record = Record::new(ID::new(), offer, time);
                     self.db.insert::<OfferTable>(&record)?;
-                    Ok(Response::Created(record.id))
+                    Ok(Ok(record.id))
                 } else {
-                    Ok(Response::Error(msgs::Error::InvalidOfferDetails))
+                    Ok(Err(msgs::Error::InvalidOfferDetails))
                 }
             }
             Item::Entity(entity) => {
                 // FIXME validation
                 let record = Record::new(ID::new(), entity, time);
                 self.db.insert::<EntityTable>(&record)?;
-                Ok(Response::Created(record.id))
+                Ok(Ok(record.id))
             }
             Item::Rel(rel) => {
                 // FIXME validation
                 let record = Record::new(ID::new(), rel, time);
                 self.db.insert::<RelTable>(&record)?;
-                Ok(Response::Created(record.id))
+                Ok(Ok(record.id))
             }
             Item::Pred(pred) => {
                 // FIXME validation
                 let record = Record::new(ID::new(), pred, time);
                 self.db.insert::<PredTable>(&record)?;
-                Ok(Response::Created(record.id))
+                Ok(Ok(record.id))
             }
             Item::Depend(depend) => {
                 // FIXME validation
                 let record = Record::new(ID::new(), depend, time);
                 self.db.insert::<DependTable>(&record)?;
-                Ok(Response::Created(record.id))
+                Ok(Ok(record.id))
             }
         }
     }
@@ -285,9 +289,12 @@ impl Market {
     }
 
     pub fn do_request(&mut self, request: Request) -> Result<Response, Error> {
-        let time = Timesecs::from(get_time().sec);
+        let time = Timesecs::now();
         match request {
-            Request::Create(item) => self.do_create(item, time),
+            Request::Create(item) => match self.do_create(item, time)? {
+                Ok(id) => Ok(Response::Created(id)),
+                Err(err) => Ok(Response::Error(err)),
+            },
             Request::Update { id, item_update } => self.do_update(id, item_update, time),
             Request::Query(query) => self.do_query(query),
         }

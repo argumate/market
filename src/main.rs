@@ -18,7 +18,7 @@ pub mod db;
 pub mod market;
 pub mod server;
 
-use failure::{format_err, Error};
+use failure::{err_msg, format_err, Error};
 use getopts::Options;
 use std::collections::HashMap;
 use std::env;
@@ -40,14 +40,20 @@ struct CmdLine {
 struct Config {
     help: bool,
     db_filename: String,
+    time: Timesecs,
 }
 
-#[derive(Debug)]
 enum Command {
     Usage,
     Init,
+    Dummy,
     Status,
     Server(String),
+    User(UserCommand),
+}
+
+enum UserCommand {
+    Add(String),
 }
 
 fn parse_command_line(opts: &Options, args: &Vec<String>) -> Result<CmdLine, Error> {
@@ -58,7 +64,15 @@ fn parse_command_line(opts: &Options, args: &Vec<String>) -> Result<CmdLine, Err
         None => String::from("market.db"),
         Some(f) => f,
     };
-    let config = Config { help, db_filename };
+    let time = match matches.opt_str("t") {
+        None => Timesecs::now(),
+        Some(t) => Timesecs::parse_datetime(&t)?,
+    };
+    let config = Config {
+        help,
+        db_filename,
+        time,
+    };
     let command = parse_command(&matches.free)?;
     Ok(CmdLine { config, command })
 }
@@ -67,12 +81,34 @@ fn parse_command(cmd: &[String]) -> Result<Command, Error> {
     if !cmd.is_empty() {
         match cmd[0].as_str() {
             "init" => parse_done(&cmd[1..], Command::Init),
+            "dummy" => parse_done(&cmd[1..], Command::Dummy),
             "status" => parse_done(&cmd[1..], Command::Status),
             "server" => parse_done(&cmd[1..], Command::Server(String::from("127.0.0.1:8000"))),
+            "user" => parse_user_command(&cmd[1..]),
             _ => Err(format_err!("unknown command: {}", cmd[0])),
         }
     } else {
         Ok(Command::Usage)
+    }
+}
+
+fn parse_user_command(args: &[String]) -> Result<Command, Error> {
+    if !args.is_empty() {
+        match args[0].as_str() {
+            "add" => parse_user_add_command(&args[1..]),
+            _ => Err(format_err!("unknown subcommand: {}", args[0])),
+        }
+    } else {
+        Err(err_msg("expected user subcommand [add]"))
+    }
+}
+
+fn parse_user_add_command(args: &[String]) -> Result<Command, Error> {
+    if !args.is_empty() {
+        let command = Command::User(UserCommand::Add(args[0].clone()));
+        parse_done(&args[1..], command)
+    } else {
+        Err(err_msg("expected user name"))
     }
 }
 
@@ -89,8 +125,10 @@ fn print_usage(program: &str, opts: &Options) {
     print!("{}", opts.usage(&brief));
     println!("\nCommands:");
     println!("    init");
+    println!("    dummy");
     println!("    status");
     println!("    server");
+    println!("    user [add]");
 }
 
 fn main() {
@@ -99,6 +137,7 @@ fn main() {
     let mut opts = Options::new();
     opts.optflag("h", "help", "print help");
     opts.optopt("f", "file", "database filename [market.db]", "FILE");
+    opts.optopt("t", "time", "time of operation [current time]", "TIME");
 
     match main2(&opts, &args) {
         Ok(()) => {}
@@ -120,8 +159,30 @@ fn main2(opts: &Options, args: &Vec<String>) -> Result<(), Error> {
             Ok(())
         }
         Command::Init => init(&cmdline.config),
+        Command::Dummy => dummy(&cmdline.config),
         Command::Status => status(&cmdline.config),
         Command::Server(addr) => server(&cmdline.config, &addr),
+        Command::User(user_cmd) => user_command(&cmdline.config, user_cmd),
+    }
+}
+
+fn user_command(config: &Config, user_cmd: UserCommand) -> Result<(), Error> {
+    let db = DB::open_read_write(&config.db_filename)?;
+    let mut market = Market::open_existing(db)?;
+    match user_cmd {
+        UserCommand::Add(user_name) => {
+            let user = User {
+                user_name: user_name.clone(),
+                user_locked: false,
+            };
+            match market.do_create(Item::User(user), config.time)? {
+                Ok(user_id) => {
+                    println!("added user {} with id {:?}", user_name, user_id);
+                    Ok(())
+                }
+                Err(err) => Err(format_err!("{:?}", err)),
+            }
+        }
     }
 }
 
@@ -133,7 +194,14 @@ fn server(config: &Config, addr: &str) -> Result<(), Error> {
 
 fn init(config: &Config) -> Result<(), Error> {
     let db = DB::open_read_write(&config.db_filename)?;
-    let mut market = Market::create_new(db)?;
+    Market::create_new(db)?;
+    println!("initialised {}", config.db_filename);
+    Ok(())
+}
+
+fn dummy(config: &Config) -> Result<(), Error> {
+    let db = DB::open_read_write(&config.db_filename)?;
+    let mut market = Market::open_existing(db)?;
 
     let mrfoo = market
         .do_request(Request::Create(Item::User(User {

@@ -45,7 +45,7 @@ pub enum Query {
     AllDepend,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub enum Error {
     InvalidUserName,
     CannotCreateUser,

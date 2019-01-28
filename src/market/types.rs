@@ -1,7 +1,8 @@
 use failure::{err_msg, Error};
 use std::collections::HashMap;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
-use time::Timespec;
+use time::get_time;
+use time::{strptime, Timespec};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct ID(pub String);
@@ -241,6 +242,18 @@ impl<'a> From<Timesecs> for i64 {
 impl From<i64> for Timesecs {
     fn from(t: i64) -> Timesecs {
         Timesecs(t)
+    }
+}
+
+impl Timesecs {
+    pub fn now() -> Timesecs {
+        Timesecs::from(get_time().sec)
+    }
+
+    pub fn parse_datetime(s: &str) -> Result<Timesecs, Error> {
+        Ok(Timesecs::from(
+            strptime(s, "%Y-%m-%d %H:%M:%S")?.to_timespec().sec,
+        ))
     }
 }
 

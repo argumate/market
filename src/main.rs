@@ -18,7 +18,7 @@ pub mod db;
 pub mod market;
 pub mod server;
 
-use failure::Error;
+use failure::{format_err, Error};
 use getopts::Options;
 use std::collections::HashMap;
 use std::env;
@@ -55,28 +55,42 @@ fn parse_command_line(opts: &Options, args: &Vec<String>) -> Result<CmdLine, Err
 
     let help = matches.opt_present("h");
     let db_filename = match matches.opt_str("f") {
-        None => {
-            return Err(failure::err_msg("missing --file argument"));
-        }
+        None => String::from("market.db"),
         Some(f) => f,
     };
     let config = Config { help, db_filename };
-    let command = if !matches.free.is_empty() {
-        match matches.free[0].as_ref() {
-            "init" => Command::Init,
-            "status" => Command::Status,
-            "server" => Command::Server(String::from("127.0.0.1:8000")),
-            _ => return Err(failure::err_msg("unknown command")),
-        }
-    } else {
-        Command::Usage
-    };
+    let command = parse_command(&matches.free)?;
     Ok(CmdLine { config, command })
 }
 
+fn parse_command(cmd: &[String]) -> Result<Command, Error> {
+    if !cmd.is_empty() {
+        match cmd[0].as_str() {
+            "init" => parse_done(&cmd[1..], Command::Init),
+            "status" => parse_done(&cmd[1..], Command::Status),
+            "server" => parse_done(&cmd[1..], Command::Server(String::from("127.0.0.1:8000"))),
+            _ => Err(format_err!("unknown command: {}", cmd[0])),
+        }
+    } else {
+        Ok(Command::Usage)
+    }
+}
+
+fn parse_done(args: &[String], command: Command) -> Result<Command, Error> {
+    if args.is_empty() {
+        Ok(command)
+    } else {
+        Err(format_err!("unexpected args: {:?}", args))
+    }
+}
+
 fn print_usage(program: &str, opts: &Options) {
-    let brief = format!("Usage: {} [options] CMD", program);
+    let brief = format!("Usage: {} [OPTIONS] COMMAND", program);
     print!("{}", opts.usage(&brief));
+    println!("\nCommands:");
+    println!("    init");
+    println!("    status");
+    println!("    server");
 }
 
 fn main() {
@@ -84,7 +98,7 @@ fn main() {
 
     let mut opts = Options::new();
     opts.optflag("h", "help", "print help");
-    opts.optopt("f", "file", "set database filename", "FILE");
+    opts.optopt("f", "file", "database filename [market.db]", "FILE");
 
     match main2(&opts, &args) {
         Ok(()) => {}

@@ -32,17 +32,13 @@ use market::types::{
 use market::Market;
 use server::run_server;
 
-struct CmdLine {
-    config: Config,
-    command: Command,
-}
-
 struct Config {
     help: bool,
     db_filename: String,
     time: Timesecs,
 }
 
+#[derive(Clone)]
 enum Command {
     Usage,
     Init,
@@ -52,11 +48,80 @@ enum Command {
     User(UserCommand),
 }
 
+#[derive(Clone)]
 enum UserCommand {
     Add(String),
 }
 
-fn parse_command_line(opts: &Options, args: &Vec<String>) -> Result<CmdLine, Error> {
+enum Handler<'a> {
+    None,
+    Cmd(Command),
+    Arg(&'a str, &'a Fn(&String) -> Command),
+    Switch(Option<Command>, &'a Fn(&str) -> Handler<'a>),
+}
+
+impl<'a> Handler<'a> {
+    fn parse_command(&self, args: &[String]) -> Result<Command, Error> {
+        match self {
+            Handler::None => Err(err_msg("unknown command")),
+            Handler::Cmd(command) => {
+                if args.is_empty() {
+                    Ok(command.clone())
+                } else {
+                    Err(format_err!("unexpected argument: {}", args[0]))
+                }
+            }
+            Handler::Arg(name, f) => match args.len() {
+                0 => Err(format_err!("missing argument: {}", name)),
+                1 => Ok(f(&args[0])),
+                _ => Err(format_err!("unexpected argument: {}", args[1])),
+            },
+            Handler::Switch(default, f) => {
+                if args.is_empty() {
+                    if let Some(command) = default {
+                        Ok(command.clone())
+                    } else {
+                        Err(err_msg("expected command"))
+                    }
+                } else {
+                    match f(args[0].as_str()) {
+                        Handler::None => Err(format_err!("unknown command: {}", args[0])),
+                        handler => handler.parse_command(&args[1..]),
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn print_usage(program: &str, opts: &Options) {
+    let brief = format!("Usage: {} [OPTIONS] COMMAND", program);
+    print!("{}", opts.usage(&brief));
+    println!("\nCommands:");
+    println!("    init");
+    println!("    dummy");
+    println!("    status");
+    println!("    server");
+    println!("    user [add]");
+}
+
+fn main() {
+    match main2() {
+        Ok(()) => {}
+        Err(err) => {
+            println!("{}", err);
+        }
+    }
+}
+
+fn main2() -> Result<(), Error> {
+    let args: Vec<String> = env::args().collect();
+
+    let mut opts = Options::new();
+    opts.optflag("h", "help", "print help");
+    opts.optopt("f", "file", "database filename [market.db]", "FILE");
+    opts.optopt("t", "time", "time of operation [current time]", "TIME");
+
     let matches = opts.parse(&args[1..])?;
 
     let help = matches.opt_present("h");
@@ -73,96 +138,38 @@ fn parse_command_line(opts: &Options, args: &Vec<String>) -> Result<CmdLine, Err
         db_filename,
         time,
     };
-    let command = parse_command(&matches.free)?;
-    Ok(CmdLine { config, command })
-}
 
-fn parse_command(cmd: &[String]) -> Result<Command, Error> {
-    if !cmd.is_empty() {
-        match cmd[0].as_str() {
-            "init" => parse_done(&cmd[1..], Command::Init),
-            "dummy" => parse_done(&cmd[1..], Command::Dummy),
-            "status" => parse_done(&cmd[1..], Command::Status),
-            "server" => parse_done(&cmd[1..], Command::Server(String::from("127.0.0.1:8000"))),
-            "user" => parse_user_command(&cmd[1..]),
-            _ => Err(format_err!("unknown command: {}", cmd[0])),
-        }
-    } else {
-        Ok(Command::Usage)
-    }
-}
+    let handler = Handler::Switch(Some(Command::Usage), &|cmd| match cmd {
+        "init" => Handler::Cmd(Command::Init),
+        "dummy" => Handler::Cmd(Command::Dummy),
+        "status" => Handler::Cmd(Command::Status),
+        "server" => Handler::Cmd(Command::Server(String::from("127.0.0.1:8000"))),
+        "user" => Handler::Switch(None, &|cmd| match cmd {
+            "add" => Handler::Arg("username", &|user_name| {
+                Command::User(UserCommand::Add(user_name.clone()))
+            }),
+            _ => Handler::None,
+        }),
+        _ => Handler::Cmd(Command::Usage),
+    });
 
-fn parse_user_command(args: &[String]) -> Result<Command, Error> {
-    if !args.is_empty() {
-        match args[0].as_str() {
-            "add" => parse_user_add_command(&args[1..]),
-            _ => Err(format_err!("unknown subcommand: {}", args[0])),
-        }
-    } else {
-        Err(err_msg("expected user subcommand [add]"))
-    }
-}
+    let command = handler.parse_command(&matches.free)?;
 
-fn parse_user_add_command(args: &[String]) -> Result<Command, Error> {
-    if !args.is_empty() {
-        let command = Command::User(UserCommand::Add(args[0].clone()));
-        parse_done(&args[1..], command)
-    } else {
-        Err(err_msg("expected user name"))
-    }
-}
-
-fn parse_done(args: &[String], command: Command) -> Result<Command, Error> {
-    if args.is_empty() {
-        Ok(command)
-    } else {
-        Err(format_err!("unexpected args: {:?}", args))
-    }
-}
-
-fn print_usage(program: &str, opts: &Options) {
-    let brief = format!("Usage: {} [OPTIONS] COMMAND", program);
-    print!("{}", opts.usage(&brief));
-    println!("\nCommands:");
-    println!("    init");
-    println!("    dummy");
-    println!("    status");
-    println!("    server");
-    println!("    user [add]");
-}
-
-fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    let mut opts = Options::new();
-    opts.optflag("h", "help", "print help");
-    opts.optopt("f", "file", "database filename [market.db]", "FILE");
-    opts.optopt("t", "time", "time of operation [current time]", "TIME");
-
-    match main2(&opts, &args) {
-        Ok(()) => {}
-        Err(e) => {
-            println!("{}", e);
-        }
-    }
-}
-
-fn main2(opts: &Options, args: &Vec<String>) -> Result<(), Error> {
-    let cmdline = parse_command_line(&opts, &args)?;
-    if cmdline.config.help {
+    if config.help {
         // FIXME
     }
-    match cmdline.command {
+
+    match command {
         Command::Usage => {
             let program = &args[0];
             print_usage(&program, &opts);
             Ok(())
         }
-        Command::Init => init(&cmdline.config),
-        Command::Dummy => dummy(&cmdline.config),
-        Command::Status => status(&cmdline.config),
-        Command::Server(addr) => server(&cmdline.config, &addr),
-        Command::User(user_cmd) => user_command(&cmdline.config, user_cmd),
+        Command::Init => init(&config),
+        Command::Dummy => dummy(&config),
+        Command::Status => status(&config),
+        Command::Server(addr) => server(&config, &addr),
+        Command::User(user_cmd) => user_command(&config, user_cmd),
     }
 }
 

@@ -215,12 +215,9 @@ impl Market {
 
     pub fn session(&mut self) {
         let mut session = Session::new();
-        for (ref contract_id, ref _contract) in &self.contracts {
-            for (ref player_id, ref player) in &self.players {
-                match player.ranges.get(contract_id.as_str()) {
-                    None => {}
-                    Some((low, high)) => session.add_offers(contract_id, player_id, *low, *high),
-                }
+        for (ref player_id, ref player) in &self.players {
+            for (ref contract_id, (low, high)) in &player.ranges {
+                session.add_offers(contract_id, player_id, *low, *high);
             }
         }
 
@@ -376,7 +373,7 @@ impl Session {
             });
     }
 
-    pub fn find_trades(&mut self) -> Vec<(Price, ContractID, PlayerID, Price, PlayerID, Price)> {
+    pub fn find_trades(&self) -> Vec<(Price, ContractID, PlayerID, Price, PlayerID, Price)> {
         let mut trades = Vec::new();
         for (ref contract_id, ref offers) in &self.offers {
             if let Some((high, buyers)) = offers.buy.iter().rev().next() {

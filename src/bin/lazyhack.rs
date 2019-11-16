@@ -661,12 +661,14 @@ impl Exposure {
 fn main() {
     let mut market = Market::new();
 
+    // Sun 10 Nov 2019
     setup_session1(&mut market);
 
     market.dump();
     market.session();
     market.dump_aftermath();
 
+    // Sat 16 Nov 2019
     setup_session2(&mut market);
 
     market.dump();

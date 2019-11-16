@@ -79,6 +79,10 @@ impl Market {
         &self.players[player_id.0]
     }
 
+    pub fn get_player_mut(&mut self, player_id: PlayerID) -> &mut Player {
+        &mut self.players[player_id.0]
+    }
+
     pub fn add_contract(&mut self, contract: Contract) {
         let contract_id = ContractID(self.contracts.len());
         match self
@@ -100,24 +104,46 @@ impl Market {
         self.players.push(player);
     }
 
-    pub fn contract(&mut self, name: &str) {
+    pub fn new_contract(&mut self, name: &str) {
         let contract = Contract::new(name);
         self.add_contract(contract);
     }
 
-    pub fn player_ranges(&mut self, name: &str, ranges: Vec<(&str, Price, Price)>) {
-        let mut player = Player::new(name);
-        for (contract_name, low, high) in ranges {
-            if let Some(contract_id) = self.contract_names.get(contract_name) {
-                if !(0 <= low && low < high && high <= 100) {
-                    panic!("invalid range: {}..{}", low, high);
-                }
-                player.set_range(*contract_id, low, high);
-            } else {
-                panic!("contract does not exist: {}", contract_name);
-            }
-        }
+    pub fn new_player(&mut self, name: &str) {
+        let player = Player::new(name);
         self.add_player(player);
+    }
+
+    pub fn rename_player(&mut self, old_name: &str, new_name: &str) {
+        let player_id = match self.player_names.remove(old_name) {
+            Some(player_id) => player_id,
+            None => panic!("no such player: {}", old_name),
+        };
+        match self.player_names.insert(new_name.to_string(), player_id) {
+            None => {}
+            Some(_old_player_id) => panic!("existing player: {}", new_name),
+        }
+    }
+
+    pub fn player_ranges(&mut self, name: &str, ranges: Vec<(&str, Price, Price)>) {
+        let player_id = *self.player_names.get(name).unwrap();
+        for (contract_name, low, high) in ranges {
+            let contract_id = match self.contract_names.get(contract_name) {
+                Some(contract_id) => *contract_id,
+                None => panic!("contract does not exist: {}", contract_name),
+            };
+            if !(0 <= low && low < high && high <= 100) {
+                panic!("invalid range: {} {}-{}", contract_name, low, high);
+            }
+            let player = self.get_player_mut(player_id);
+            player.set_range(contract_id, low, high);
+        }
+    }
+
+    pub fn increment_credit(&mut self, amount: Price) {
+        for player in &mut self.players {
+            player.credit_limit += amount;
+        }
     }
 
     pub fn dump(&self) {
@@ -635,19 +661,48 @@ impl Exposure {
 fn main() {
     let mut market = Market::new();
 
-    market.contract("Sanders");
-    market.contract("Warren");
-    market.contract("Biden");
-    market.contract("Buttigieg");
-    market.contract("Harris");
-    market.contract("Steyer");
-    market.contract("Yang");
-    market.contract("Gillibrand");
-    market.contract("Gabbard");
-    market.contract("Williamson");
-    market.contract("Booker");
-    market.contract("Klobuchar");
-    market.contract("Castro");
+    setup_session1(&mut market);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
+
+    setup_session2(&mut market);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
+}
+
+fn setup_session1(market: &mut Market) {
+    market.new_contract("Sanders");
+    market.new_contract("Warren");
+    market.new_contract("Biden");
+    market.new_contract("Buttigieg");
+    market.new_contract("Harris");
+    market.new_contract("Steyer");
+    market.new_contract("Yang");
+    market.new_contract("Gillibrand");
+    market.new_contract("Gabbard");
+    market.new_contract("Williamson");
+    market.new_contract("Booker");
+    market.new_contract("Klobuchar");
+    market.new_contract("Castro");
+
+    market.new_player("antoine-roquentin");
+    market.new_player("blastfarmer");
+    market.new_player("cromulentenough");
+    market.new_player("flakmaniak");
+    market.new_player("intercal");
+    market.new_player("kwarrtz");
+    market.new_player("learn-tilde-ath");
+    market.new_player("ouroborostriumphant");
+    market.new_player("placid-platypus");
+    market.new_player("squareallworthy");
+    market.new_player("tanadrin");
+    market.new_player("the-moti");
+    market.new_player("triviallytrue");
+    market.new_player("von-hresvelg");
 
     market.player_ranges("learn-tilde-ath", vec![("Sanders", 2, 98)]);
 
@@ -799,8 +854,180 @@ fn main() {
             ("Klobuchar", 2, 4),
         ],
     );
+}
 
-    market.dump();
-    market.session();
-    market.dump_aftermath();
+fn setup_session2(market: &mut Market) {
+    market.new_contract("Patrick");
+
+    market.increment_credit(1000);
+
+    market.new_player("birth-muffins-death");
+    market.new_player("bibliolithid");
+    market.new_player("firebendinglemur");
+    market.new_player("tremorbond");
+    market.new_player("la-pou-belle");
+
+    market.rename_player("blastfarmer", "irradiate-space");
+
+    market.player_ranges(
+        "cromulentenough",
+        vec![
+            ("Sanders", 30, 50),
+            ("Warren", 30, 50),
+            ("Biden", 15, 35),
+            ("Buttigieg", 20, 40),
+        ],
+    );
+
+    market.player_ranges(
+        "flakmaniak",
+        vec![
+            ("Warren", 30, 60),
+            ("Biden", 25, 45),
+            ("Sanders", 10, 30),
+            ("Buttigieg", 0, 8),
+            ("Harris", 0, 6),
+            ("Booker", 0, 4),
+            ("Yang", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "birth-muffins-death",
+        vec![
+            ("Biden", 35, 75),
+            ("Warren", 10, 30),
+            ("Sanders", 5, 35),
+            ("Buttigieg", 1, 10),
+            ("Harris", 1, 3),
+        ],
+    );
+
+    market.player_ranges(
+        "ouroborostriumphant",
+        vec![
+            ("Biden", 20, 45),
+            ("Buttigieg", 5, 15),
+            ("Gabbard", 0, 5),
+            ("Gillibrand", 0, 5),
+            ("Harris", 2, 10),
+            ("Sanders", 10, 20),
+            ("Warren", 20, 45),
+            ("Williamson", 0, 5),
+            ("Yang", 1, 7),
+        ],
+    );
+
+    market.player_ranges(
+        "bibliolithid",
+        vec![
+            ("Warren", 40, 45),
+            ("Biden", 28, 32),
+            ("Sanders", 17, 21),
+            ("Buttigieg", 3, 5),
+            ("Yang", 1, 2),
+            ("Harris", 1, 3),
+        ],
+    );
+
+    market.player_ranges(
+        "irradiate-space",
+        vec![
+            ("Biden", 20, 33),
+            ("Warren", 20, 47),
+            ("Sanders", 0, 11),
+            ("Buttigieg", 0, 9),
+            ("Yang", 0, 1),
+            ("Harris", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "squareallworthy",
+        vec![
+            ("Biden", 40, 41),
+            ("Booker", 0, 3),
+            ("Buttigieg", 7, 8),
+            ("Gabbard", 0, 3),
+            ("Harris", 3, 4),
+            ("Klobuchar", 0, 3),
+            ("Sanders", 9, 10),
+            ("Warren", 34, 35),
+            ("Yang", 0, 3),
+            ("Patrick", 0, 3),
+        ],
+    );
+
+    market.player_ranges(
+        "tanadrin",
+        vec![
+            ("Biden", 20, 40),
+            ("Sanders", 10, 20),
+            ("Warren", 20, 40),
+            ("Yang", 0, 1),
+            ("Williamson", 0, 1),
+            ("Steyer", 0, 1),
+            ("Klobuchar", 0, 1),
+            ("Gillibrand", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Castro", 0, 1),
+            ("Buttigieg", 0, 1),
+            ("Booker", 0, 1),
+            ("Harris", 0, 10),
+        ],
+    );
+
+    market.player_ranges(
+        "the-moti",
+        vec![
+            ("Booker", 0, 1),
+            ("Castro", 0, 2),
+            ("Gabbard", 2, 6),
+            ("Gillibrand", 0, 2),
+            ("Harris", 2, 6),
+            ("Klobuchar", 1, 3),
+            ("Steyer", 0, 1),
+            ("Williamson", 0, 2),
+            ("Yang", 4, 8),
+            ("Biden", 20, 28),
+            ("Buttigieg", 14, 22),
+            ("Sanders", 9, 17),
+            ("Warren", 24, 32),
+        ],
+    );
+
+    market.player_ranges(
+        "firebendinglemur",
+        vec![
+            ("Biden", 65, 70),
+            ("Warren", 15, 17),
+            ("Sanders", 11, 12),
+            ("Buttigieg", 2, 3),
+            ("Harris", 1, 2),
+            ("Gabbard", 0, 2),
+        ],
+    );
+
+    market.player_ranges(
+        "tremorbond",
+        vec![
+            ("Biden", 33, 39),
+            ("Warren", 29, 35),
+            ("Sanders", 13, 17),
+            ("Buttigieg", 8, 12),
+            ("Harris", 1, 3),
+            ("Yang", 1, 3),
+        ],
+    );
+
+    market.player_ranges(
+        "la-pou-belle",
+        vec![
+            ("Warren", 54, 56),
+            ("Biden", 24, 26),
+            ("Buttigieg", 11, 13),
+            ("Sanders", 5, 7),
+            ("Steyer", 1, 3),
+        ],
+    );
 }

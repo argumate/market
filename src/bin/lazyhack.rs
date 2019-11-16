@@ -1,6 +1,5 @@
 use std::cmp::{max, min};
 use std::collections::BTreeMap;
-use std::collections::BTreeSet;
 
 type Price = i32;
 
@@ -52,8 +51,8 @@ struct Offers {
 }
 
 struct ContractOffers {
-    buy: BTreeMap<Price, BTreeSet<PlayerID>>,
-    sell: BTreeMap<Price, BTreeSet<PlayerID>>,
+    buy: BTreeMap<Price, BTreeMap<PlayerID, Price>>,
+    sell: BTreeMap<Price, BTreeMap<PlayerID, Price>>,
 }
 
 impl Market {
@@ -220,24 +219,6 @@ impl Market {
         }
     }
 
-    pub fn player_can_buy(
-        &self,
-        session: &Session,
-        buyer_id: PlayerID,
-        contract_id: ContractID,
-    ) -> bool {
-        self.player_max_buy_amount(session, buyer_id, contract_id) >= 100
-    }
-
-    pub fn player_can_sell(
-        &self,
-        session: &Session,
-        seller_id: PlayerID,
-        contract_id: ContractID,
-    ) -> bool {
-        self.player_max_sell_amount(session, seller_id, contract_id) >= 100
-    }
-
     pub fn player_max_buy_amount(
         &self,
         session: &Session,
@@ -381,11 +362,13 @@ impl Session {
         for (_player_name, player_id) in &market.player_names {
             let player = market.get_player(*player_id);
             for (contract_id, (low, high)) in &player.ranges {
-                if market.player_can_buy(&self, *player_id, *contract_id) {
-                    offers.add_buy_offer(*contract_id, *player_id, *low);
+                let buy_amount = market.player_max_buy_amount(&self, *player_id, *contract_id);
+                let sell_amount = market.player_max_sell_amount(&self, *player_id, *contract_id);
+                if buy_amount >= 100 {
+                    offers.add_buy_offer(*contract_id, *player_id, *low, buy_amount);
                 }
-                if market.player_can_sell(&self, *player_id, *contract_id) {
-                    offers.add_sell_offer(*contract_id, *player_id, *high);
+                if sell_amount >= 100 {
+                    offers.add_sell_offer(*contract_id, *player_id, *high, sell_amount);
                 }
             }
         }
@@ -403,22 +386,66 @@ impl Session {
             if let Some((high, buyers)) = contract_offers.buy.iter().rev().next() {
                 if let Some((low, sellers)) = contract_offers.sell.iter().next() {
                     if low <= high {
-                        let mut buyers: Vec<PlayerID> = buyers.iter().map(|x| *x).collect();
-                        let mut sellers: Vec<PlayerID> = sellers.iter().map(|x| *x).collect();
-                        // FIXME
-                        buyers.sort_by_key(|player_id| &market.get_player(*player_id).name);
-                        sellers.sort_by_key(|player_id| &market.get_player(*player_id).name);
-                        //let salt = player_id.chars().fold(0, |x, c| x ^ (c as i32)); // FIXME
-                        let buyer = buyers.iter().next().unwrap(); // FIXME
-                        let seller = sellers.iter().next().unwrap(); // FIXME
+                        let mut buyers: Vec<(Price, String, PlayerID)> = buyers
+                            .iter()
+                            .map(|(buyer_id, amount)| {
+                                (
+                                    *amount,
+                                    market.get_player(*buyer_id).name.clone(),
+                                    *buyer_id,
+                                )
+                            })
+                            .collect();
+                        let mut sellers: Vec<(Price, String, PlayerID)> = sellers
+                            .iter()
+                            .map(|(seller_id, amount)| {
+                                (
+                                    *amount,
+                                    market.get_player(*seller_id).name.clone(),
+                                    *seller_id,
+                                )
+                            })
+                            .collect();
+
+                        // sort by amount, then name
+                        // then remove all that aren't the highest amount
+
+                        buyers.sort();
+                        let max_buy_amount = buyers[buyers.len() - 1].0;
+                        buyers.retain(|(amount, _name, _id)| *amount == max_buy_amount);
+
+                        sellers.sort();
+                        let max_sell_amount = sellers[sellers.len() - 1].0;
+                        sellers.retain(|(amount, _name, _id)| *amount == max_sell_amount);
+
+                        /*
+                        if buyers.len() > 1 {
+                            println!(
+                                "multiple buyers for {} at {}: {:?}",
+                                contract.name, high, buyers
+                            );
+                        }
+
+                        if sellers.len() > 1 {
+                            println!(
+                                "multiple sellers for {} at {}: {:?}",
+                                contract.name, low, sellers
+                            );
+                        }
+                        */
+
+                        let (_buyer_amount, _buyer_name, buyer_id) =
+                            buyers.into_iter().next().unwrap(); // FIXME
+                        let (_seller_amount, _seller_name, seller_id) =
+                            sellers.into_iter().next().unwrap(); // FIXME
                         let spread = high - low;
                         trades.push((
                             spread,
                             contract.name.clone(), // for consistent ordering
                             *contract_id,
-                            buyer.clone(),
+                            buyer_id,
                             *high,
-                            seller.clone(),
+                            seller_id,
                             *low,
                         ));
                     }
@@ -437,40 +464,36 @@ impl Offers {
         Offers { offers }
     }
 
-    pub fn add_buy_offer(&mut self, contract_id: ContractID, player_id: PlayerID, low: Price) {
-        let offers = self
-            .offers
+    pub fn add_buy_offer(
+        &mut self,
+        contract_id: ContractID,
+        player_id: PlayerID,
+        low: Price,
+        amount: Price,
+    ) {
+        self.offers
             .entry(contract_id)
-            .or_insert_with(|| ContractOffers::new());
-        offers
+            .or_insert_with(|| ContractOffers::new())
             .buy
             .entry(low)
-            .and_modify(|players| {
-                players.insert(player_id);
-            })
-            .or_insert_with(|| {
-                let mut players = BTreeSet::new();
-                players.insert(player_id);
-                players
-            });
+            .or_insert_with(|| BTreeMap::new())
+            .insert(player_id, amount);
     }
 
-    pub fn add_sell_offer(&mut self, contract_id: ContractID, player_id: PlayerID, high: Price) {
-        let offers = self
-            .offers
+    pub fn add_sell_offer(
+        &mut self,
+        contract_id: ContractID,
+        player_id: PlayerID,
+        high: Price,
+        amount: Price,
+    ) {
+        self.offers
             .entry(contract_id)
-            .or_insert_with(|| ContractOffers::new());
-        offers
+            .or_insert_with(|| ContractOffers::new())
             .sell
             .entry(high)
-            .and_modify(|players| {
-                players.insert(player_id);
-            })
-            .or_insert_with(|| {
-                let mut players = BTreeSet::new();
-                players.insert(player_id);
-                players
-            });
+            .or_insert_with(|| BTreeMap::new())
+            .insert(player_id, amount);
     }
 
     pub fn find_spreads(&self, market: &Market) -> BTreeMap<String, (Price, Price)> {

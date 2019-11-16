@@ -44,11 +44,14 @@ struct Iou {
 
 struct Session {
     exposures: BTreeMap<PlayerID, Exposure>,
-    offers: BTreeMap<ContractID, Offers>,
     ious: Vec<Iou>,
 }
 
 struct Offers {
+    offers: BTreeMap<ContractID, ContractOffers>,
+}
+
+struct ContractOffers {
     buy: BTreeMap<Price, BTreeSet<PlayerID>>,
     sell: BTreeMap<Price, BTreeSet<PlayerID>>,
 }
@@ -222,6 +225,24 @@ impl Market {
         session: &Session,
         buyer_id: PlayerID,
         contract_id: ContractID,
+    ) -> bool {
+        self.player_max_buy_amount(session, buyer_id, contract_id) >= 100
+    }
+
+    pub fn player_can_sell(
+        &self,
+        session: &Session,
+        seller_id: PlayerID,
+        contract_id: ContractID,
+    ) -> bool {
+        self.player_max_sell_amount(session, seller_id, contract_id) >= 100
+    }
+
+    pub fn player_max_buy_amount(
+        &self,
+        session: &Session,
+        buyer_id: PlayerID,
+        contract_id: ContractID,
     ) -> Price {
         let buyer_credit_limit = self.get_player(buyer_id).credit_limit;
         let buyer_exposure = session.exposures.get(&buyer_id).unwrap();
@@ -230,7 +251,7 @@ impl Market {
         buyer_max_amount
     }
 
-    pub fn player_can_sell(
+    pub fn player_max_sell_amount(
         &self,
         session: &Session,
         seller_id: PlayerID,
@@ -246,17 +267,13 @@ impl Market {
     pub fn session(&mut self) {
         let mut session = Session::new();
         for (_player_name, player_id) in &self.player_names {
-            let player = self.get_player(*player_id);
             let exposure = self.calc_exposure(*player_id);
             session.exposures.insert(*player_id, exposure);
-            for (contract_id, (low, high)) in &player.ranges {
-                session.add_buy_offer(*contract_id, *player_id, *low);
-                session.add_sell_offer(*contract_id, *player_id, *high);
-            }
         }
 
         loop {
-            let trades = session.find_trades(self);
+            let offers = session.find_offers(self);
+            let trades = session.find_trades(self, &offers);
 
             if let Some((_spread, _contract_name, contract_id, buyer_id, high, seller_id, low)) =
                 trades.into_iter().next()
@@ -267,7 +284,7 @@ impl Market {
                 //println!("price: {}", price);
                 //println!();
 
-                let buyer_max_amount = self.player_can_buy(&session, buyer_id, contract_id);
+                let buyer_max_amount = self.player_max_buy_amount(&session, buyer_id, contract_id);
                 let buyer_max_units = buyer_max_amount / price;
 
                 //println!("buyer: {}", buyer_id);
@@ -275,7 +292,8 @@ impl Market {
                 //println!("buyer_max_units = {}", buyer_max_units);
                 //println!();
 
-                let seller_max_amount = self.player_can_sell(&session, seller_id, contract_id);
+                let seller_max_amount =
+                    self.player_max_sell_amount(&session, seller_id, contract_id);
                 let seller_max_units = seller_max_amount / (100 - price);
 
                 //println!("seller: {}", seller_id);
@@ -283,60 +301,43 @@ impl Market {
                 //println!("seller_max_units = {}", seller_max_units);
                 //println!();
 
-                let buyer_maxed_out = buyer_max_units <= seller_max_units;
-                let seller_maxed_out = seller_max_units <= buyer_max_units;
-
                 //println!("buyer_maxed_out = {}", buyer_maxed_out);
                 //println!("seller_maxed_out = {}", seller_maxed_out);
                 //println!();
 
                 let trade_units = min(buyer_max_units, seller_max_units);
 
-                if trade_units > 0 {
-                    let seller_iou = Iou {
-                        issuer_id: seller_id,
-                        holder_id: buyer_id,
-                        contract_id: contract_id,
-                        condition: true,
-                        amount: trade_units * (100 - price),
-                    };
-
-                    let buyer_iou = Iou {
-                        issuer_id: buyer_id,
-                        holder_id: seller_id,
-                        contract_id: contract_id,
-                        condition: false,
-                        amount: trade_units * price,
-                    };
-
-                    session.apply_iou(seller_iou);
-                    session.apply_iou(buyer_iou);
-
-                    self.check_credit_failure(buyer_id);
-                    self.check_credit_failure(seller_id);
-
-                    //println!(
-                    //    "{} {} units @ {} : {} -> {}",
-                    //    contract_id, trade_units, price, seller_id, buyer_id
-                    //);
-                    //println!();
+                if !(trade_units > 0) {
+                    panic!("trade_units = {}", trade_units);
                 }
 
-                if buyer_maxed_out {
-                    session
-                        .offers
-                        .get_mut(&contract_id)
-                        .unwrap()
-                        .remove_buy_offer(high, buyer_id);
-                }
+                let seller_iou = Iou {
+                    issuer_id: seller_id,
+                    holder_id: buyer_id,
+                    contract_id: contract_id,
+                    condition: true,
+                    amount: trade_units * (100 - price),
+                };
 
-                if seller_maxed_out {
-                    session
-                        .offers
-                        .get_mut(&contract_id)
-                        .unwrap()
-                        .remove_sell_offer(low, seller_id);
-                }
+                let buyer_iou = Iou {
+                    issuer_id: buyer_id,
+                    holder_id: seller_id,
+                    contract_id: contract_id,
+                    condition: false,
+                    amount: trade_units * price,
+                };
+
+                //println!(
+                //    "{} {} units @ {} : {} -> {}",
+                //    contract_id, trade_units, price, seller_id, buyer_id
+                //);
+                //println!();
+
+                session.apply_iou(seller_iou);
+                session.apply_iou(buyer_iou);
+
+                self.check_credit_failure(buyer_id);
+                self.check_credit_failure(seller_id);
             } else {
                 //println!("no trades!");
                 //println!();
@@ -344,7 +345,8 @@ impl Market {
             }
         }
 
-        let spreads = session.find_spreads(self);
+        let offers = session.find_offers(self);
+        let spreads = offers.find_spreads(self);
         println!("SPREADS ({})", spreads.len());
         for (contract_name, (low, high)) in spreads.into_iter() {
             println!(" - {} {}-{}", contract_name, low, high);
@@ -358,49 +360,8 @@ impl Market {
 impl Session {
     pub fn new() -> Self {
         let exposures = BTreeMap::new();
-        let offers = BTreeMap::new();
         let ious = Vec::new();
-        Session {
-            exposures,
-            offers,
-            ious,
-        }
-    }
-
-    pub fn add_buy_offer(&mut self, contract_id: ContractID, player_id: PlayerID, low: Price) {
-        let offers = self
-            .offers
-            .entry(contract_id)
-            .or_insert_with(|| Offers::new());
-        offers
-            .buy
-            .entry(low)
-            .and_modify(|players| {
-                players.insert(player_id);
-            })
-            .or_insert_with(|| {
-                let mut players = BTreeSet::new();
-                players.insert(player_id);
-                players
-            });
-    }
-
-    pub fn add_sell_offer(&mut self, contract_id: ContractID, player_id: PlayerID, high: Price) {
-        let offers = self
-            .offers
-            .entry(contract_id)
-            .or_insert_with(|| Offers::new());
-        offers
-            .sell
-            .entry(high)
-            .and_modify(|players| {
-                players.insert(player_id);
-            })
-            .or_insert_with(|| {
-                let mut players = BTreeSet::new();
-                players.insert(player_id);
-                players
-            });
+        Session { exposures, ious }
     }
 
     pub fn apply_iou(&mut self, iou: Iou) {
@@ -415,15 +376,32 @@ impl Session {
         self.ious.push(iou);
     }
 
+    pub fn find_offers(&self, market: &Market) -> Offers {
+        let mut offers = Offers::new();
+        for (_player_name, player_id) in &market.player_names {
+            let player = market.get_player(*player_id);
+            for (contract_id, (low, high)) in &player.ranges {
+                if market.player_can_buy(&self, *player_id, *contract_id) {
+                    offers.add_buy_offer(*contract_id, *player_id, *low);
+                }
+                if market.player_can_sell(&self, *player_id, *contract_id) {
+                    offers.add_sell_offer(*contract_id, *player_id, *high);
+                }
+            }
+        }
+        offers
+    }
+
     pub fn find_trades(
         &self,
         market: &Market,
+        offers: &Offers,
     ) -> Vec<(Price, String, ContractID, PlayerID, Price, PlayerID, Price)> {
         let mut trades = Vec::new();
-        for (contract_id, offers) in &self.offers {
+        for (contract_id, contract_offers) in &offers.offers {
             let contract = market.get_contract(*contract_id);
-            if let Some((high, buyers)) = offers.buy.iter().rev().next() {
-                if let Some((low, sellers)) = offers.sell.iter().next() {
+            if let Some((high, buyers)) = contract_offers.buy.iter().rev().next() {
+                if let Some((low, sellers)) = contract_offers.sell.iter().next() {
                     if low <= high {
                         let mut buyers: Vec<PlayerID> = buyers.iter().map(|x| *x).collect();
                         let mut sellers: Vec<PlayerID> = sellers.iter().map(|x| *x).collect();
@@ -451,6 +429,49 @@ impl Session {
         trades.reverse();
         trades
     }
+}
+
+impl Offers {
+    pub fn new() -> Self {
+        let offers = BTreeMap::new();
+        Offers { offers }
+    }
+
+    pub fn add_buy_offer(&mut self, contract_id: ContractID, player_id: PlayerID, low: Price) {
+        let offers = self
+            .offers
+            .entry(contract_id)
+            .or_insert_with(|| ContractOffers::new());
+        offers
+            .buy
+            .entry(low)
+            .and_modify(|players| {
+                players.insert(player_id);
+            })
+            .or_insert_with(|| {
+                let mut players = BTreeSet::new();
+                players.insert(player_id);
+                players
+            });
+    }
+
+    pub fn add_sell_offer(&mut self, contract_id: ContractID, player_id: PlayerID, high: Price) {
+        let offers = self
+            .offers
+            .entry(contract_id)
+            .or_insert_with(|| ContractOffers::new());
+        offers
+            .sell
+            .entry(high)
+            .and_modify(|players| {
+                players.insert(player_id);
+            })
+            .or_insert_with(|| {
+                let mut players = BTreeSet::new();
+                players.insert(player_id);
+                players
+            });
+    }
 
     pub fn find_spreads(&self, market: &Market) -> BTreeMap<String, (Price, Price)> {
         let mut spreads = BTreeMap::new();
@@ -467,27 +488,11 @@ impl Session {
     }
 }
 
-impl Offers {
+impl ContractOffers {
     pub fn new() -> Self {
         let buy = BTreeMap::new();
         let sell = BTreeMap::new();
-        Offers { buy, sell }
-    }
-
-    pub fn remove_buy_offer(&mut self, price: Price, player_id: PlayerID) {
-        let buyers = self.buy.get_mut(&price).unwrap();
-        buyers.remove(&player_id);
-        if buyers.is_empty() {
-            self.buy.remove(&price);
-        }
-    }
-
-    pub fn remove_sell_offer(&mut self, price: Price, player_id: PlayerID) {
-        let sellers = self.sell.get_mut(&price).unwrap();
-        sellers.remove(&player_id);
-        if sellers.is_empty() {
-            self.sell.remove(&price);
-        }
+        ContractOffers { buy, sell }
     }
 }
 

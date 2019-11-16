@@ -29,6 +29,7 @@ struct Player {
 }
 
 struct Exposure {
+    player_id: PlayerID,
     exposure: BTreeMap<ContractID, Price>,
     neg_exposure: BTreeMap<ContractID, Price>,
 }
@@ -42,7 +43,9 @@ struct Iou {
 }
 
 struct Session {
+    exposures: BTreeMap<PlayerID, Exposure>,
     offers: BTreeMap<ContractID, Offers>,
+    ious: Vec<Iou>,
 }
 
 struct Offers {
@@ -192,37 +195,11 @@ impl Market {
     }
 
     pub fn calc_exposure(&self, player_id: PlayerID) -> Exposure {
-        let mut exposure = Exposure::new();
+        let mut exposure = Exposure::new(player_id);
         for iou in &self.ious {
-            if iou.issuer_id == player_id {
-                if iou.condition {
-                    exposure.add_exposure(iou.contract_id, iou.amount);
-                } else {
-                    exposure.add_neg_exposure(iou.contract_id, iou.amount);
-                }
-            } else if iou.holder_id == player_id {
-                if iou.condition {
-                    exposure.add_exposure(iou.contract_id, -iou.amount);
-                } else {
-                    exposure.add_neg_exposure(iou.contract_id, -iou.amount);
-                }
-            }
+            exposure.apply_iou(iou);
         }
         exposure
-    }
-
-    pub fn calc_exposure_to_contract(
-        &self,
-        player_id: PlayerID,
-        contract_id: ContractID,
-        condition: bool,
-    ) -> Price {
-        let exposure = self.calc_exposure(player_id);
-        if condition {
-            exposure.total_exposure_to_contract(contract_id)
-        } else {
-            exposure.total_exposure_to_contract_neg(contract_id)
-        }
     }
 
     pub fn check_credit_failure(&self, player_id: PlayerID) {
@@ -240,12 +217,41 @@ impl Market {
         }
     }
 
+    pub fn player_can_buy(
+        &self,
+        session: &Session,
+        buyer_id: PlayerID,
+        contract_id: ContractID,
+    ) -> Price {
+        let buyer_credit_limit = self.get_player(buyer_id).credit_limit;
+        let buyer_exposure = session.exposures.get(&buyer_id).unwrap();
+        let buyer_exposed = buyer_exposure.total_exposure_to_contract_neg(contract_id);
+        let buyer_max_amount = max(0, buyer_credit_limit - buyer_exposed);
+        buyer_max_amount
+    }
+
+    pub fn player_can_sell(
+        &self,
+        session: &Session,
+        seller_id: PlayerID,
+        contract_id: ContractID,
+    ) -> Price {
+        let seller_credit_limit = self.get_player(seller_id).credit_limit;
+        let seller_exposure = session.exposures.get(&seller_id).unwrap();
+        let seller_exposed = seller_exposure.total_exposure_to_contract(contract_id);
+        let seller_max_amount = max(0, seller_credit_limit - seller_exposed);
+        seller_max_amount
+    }
+
     pub fn session(&mut self) {
         let mut session = Session::new();
         for (_player_name, player_id) in &self.player_names {
             let player = self.get_player(*player_id);
+            let exposure = self.calc_exposure(*player_id);
+            session.exposures.insert(*player_id, exposure);
             for (contract_id, (low, high)) in &player.ranges {
-                session.add_offers(*contract_id, *player_id, *low, *high);
+                session.add_buy_offer(*contract_id, *player_id, *low);
+                session.add_sell_offer(*contract_id, *player_id, *high);
             }
         }
 
@@ -261,26 +267,18 @@ impl Market {
                 //println!("price: {}", price);
                 //println!();
 
-                let buyer_credit_limit = self.get_player(buyer_id).credit_limit;
-                let buyer_exposure = self.calc_exposure_to_contract(buyer_id, contract_id, false);
-                let buyer_max_amount = max(0, buyer_credit_limit - buyer_exposure);
+                let buyer_max_amount = self.player_can_buy(&session, buyer_id, contract_id);
                 let buyer_max_units = buyer_max_amount / price;
 
                 //println!("buyer: {}", buyer_id);
-                //println!("buyer_credit_limit = {}", buyer_credit_limit);
-                //println!("buyer_exposure = {}", buyer_exposure);
                 //println!("buyer_max_amount = {}", buyer_max_amount);
                 //println!("buyer_max_units = {}", buyer_max_units);
                 //println!();
 
-                let seller_credit_limit = self.get_player(seller_id).credit_limit;
-                let seller_exposure = self.calc_exposure_to_contract(seller_id, contract_id, true);
-                let seller_max_amount = max(0, seller_credit_limit - seller_exposure);
+                let seller_max_amount = self.player_can_sell(&session, seller_id, contract_id);
                 let seller_max_units = seller_max_amount / (100 - price);
 
                 //println!("seller: {}", seller_id);
-                //println!("seller_credit_limit = {}", seller_credit_limit);
-                //println!("seller_exposure = {}", seller_exposure);
                 //println!("seller_max_amount = {}", seller_max_amount);
                 //println!("seller_max_units = {}", seller_max_units);
                 //println!();
@@ -311,13 +309,8 @@ impl Market {
                         amount: trade_units * price,
                     };
 
-                    //println!("{:?}", seller_iou);
-                    //println!();
-                    //println!("{:?}", buyer_iou);
-                    //println!();
-
-                    self.ious.push(seller_iou);
-                    self.ious.push(buyer_iou);
+                    session.apply_iou(seller_iou);
+                    session.apply_iou(buyer_iou);
 
                     self.check_credit_failure(buyer_id);
                     self.check_credit_failure(seller_id);
@@ -357,22 +350,24 @@ impl Market {
             println!(" - {} {}-{}", contract_name, low, high);
         }
         println!();
+
+        self.ious.append(&mut session.ious);
     }
 }
 
 impl Session {
     pub fn new() -> Self {
+        let exposures = BTreeMap::new();
         let offers = BTreeMap::new();
-        Session { offers }
+        let ious = Vec::new();
+        Session {
+            exposures,
+            offers,
+            ious,
+        }
     }
 
-    pub fn add_offers(
-        &mut self,
-        contract_id: ContractID,
-        player_id: PlayerID,
-        low: Price,
-        high: Price,
-    ) {
+    pub fn add_buy_offer(&mut self, contract_id: ContractID, player_id: PlayerID, low: Price) {
         let offers = self
             .offers
             .entry(contract_id)
@@ -388,6 +383,13 @@ impl Session {
                 players.insert(player_id);
                 players
             });
+    }
+
+    pub fn add_sell_offer(&mut self, contract_id: ContractID, player_id: PlayerID, high: Price) {
+        let offers = self
+            .offers
+            .entry(contract_id)
+            .or_insert_with(|| Offers::new());
         offers
             .sell
             .entry(high)
@@ -399,6 +401,18 @@ impl Session {
                 players.insert(player_id);
                 players
             });
+    }
+
+    pub fn apply_iou(&mut self, iou: Iou) {
+        self.exposures
+            .get_mut(&iou.issuer_id)
+            .unwrap()
+            .apply_iou(&iou);
+        self.exposures
+            .get_mut(&iou.holder_id)
+            .unwrap()
+            .apply_iou(&iou);
+        self.ious.push(iou);
     }
 
     pub fn find_trades(
@@ -500,12 +514,29 @@ impl Player {
 }
 
 impl Exposure {
-    pub fn new() -> Self {
+    pub fn new(player_id: PlayerID) -> Self {
         let exposure = BTreeMap::new();
         let neg_exposure = BTreeMap::new();
         Exposure {
+            player_id,
             exposure,
             neg_exposure,
+        }
+    }
+
+    pub fn apply_iou(&mut self, iou: &Iou) {
+        if iou.issuer_id == self.player_id {
+            if iou.condition {
+                self.add_exposure(iou.contract_id, iou.amount);
+            } else {
+                self.add_neg_exposure(iou.contract_id, iou.amount);
+            }
+        } else if iou.holder_id == self.player_id {
+            if iou.condition {
+                self.add_exposure(iou.contract_id, -iou.amount);
+            } else {
+                self.add_neg_exposure(iou.contract_id, -iou.amount);
+            }
         }
     }
 

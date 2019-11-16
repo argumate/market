@@ -4,13 +4,17 @@ use std::collections::BTreeSet;
 
 type Price = i32;
 
-type ContractID = String;
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+struct ContractID(usize);
 
-type PlayerID = String;
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+struct PlayerID(usize);
 
 struct Market {
-    contracts: BTreeMap<ContractID, Contract>,
-    players: BTreeMap<PlayerID, Player>,
+    contract_names: BTreeMap<String, ContractID>,
+    player_names: BTreeMap<String, PlayerID>,
+    contracts: Vec<Contract>,
+    players: Vec<Player>,
     ious: Vec<Iou>,
 }
 
@@ -29,7 +33,6 @@ struct Exposure {
     neg_exposure: BTreeMap<ContractID, Price>,
 }
 
-#[derive(Debug)]
 struct Iou {
     pub issuer_id: PlayerID,
     pub holder_id: PlayerID,
@@ -49,32 +52,47 @@ struct Offers {
 
 impl Market {
     pub fn new() -> Self {
-        let contracts = BTreeMap::new();
-        let players = BTreeMap::new();
+        let contract_names = BTreeMap::new();
+        let player_names = BTreeMap::new();
+        let contracts = Vec::new();
+        let players = Vec::new();
         let ious = Vec::new();
         Market {
+            contract_names,
+            player_names,
             contracts,
             players,
             ious,
         }
     }
 
-    pub fn get_player(&self, player_id: &PlayerID) -> &Player {
-        self.players.get(player_id.as_str()).unwrap()
+    pub fn get_contract(&self, contract_id: ContractID) -> &Contract {
+        &self.contracts[contract_id.0]
+    }
+
+    pub fn get_player(&self, player_id: PlayerID) -> &Player {
+        &self.players[player_id.0]
     }
 
     pub fn add_contract(&mut self, contract: Contract) {
-        match self.contracts.insert(contract.name.clone(), contract) {
+        let contract_id = ContractID(self.contracts.len());
+        match self
+            .contract_names
+            .insert(contract.name.clone(), contract_id)
+        {
             None => {}
-            Some(old) => panic!("contract already exists: {}", old.name),
+            Some(_old) => panic!("contract already exists: {}", contract.name),
         }
+        self.contracts.push(contract);
     }
 
     pub fn add_player(&mut self, player: Player) {
-        match self.players.insert(player.name.clone(), player) {
+        let player_id = PlayerID(self.players.len());
+        match self.player_names.insert(player.name.clone(), player_id) {
             None => {}
-            Some(old) => panic!("player already exists: {}", old.name),
+            Some(_old) => panic!("player already exists: {}", player.name),
         }
+        self.players.push(player);
     }
 
     pub fn contract(&mut self, name: &str) {
@@ -84,35 +102,39 @@ impl Market {
 
     pub fn player_ranges(&mut self, name: &str, ranges: Vec<(&str, Price, Price)>) {
         let mut player = Player::new(name);
-        for (contract, low, high) in ranges {
-            if !self.contracts.contains_key(contract) {
-                panic!("contract does not exist: {}", contract);
+        for (contract_name, low, high) in ranges {
+            if let Some(contract_id) = self.contract_names.get(contract_name) {
+                if !(0 <= low && low < high && high <= 100) {
+                    panic!("invalid range: {}..{}", low, high);
+                }
+                player.set_range(*contract_id, low, high);
+            } else {
+                panic!("contract does not exist: {}", contract_name);
             }
-            if !(0 <= low && low < high && high <= 100) {
-                panic!("invalid range: {}..{}", low, high);
-            }
-            player.set_range(contract, low, high);
         }
         self.add_player(player);
     }
 
     pub fn dump(&self) {
         println!("CONTRACTS ({})", self.contracts.len());
-        for (ref name, ref _contract) in &self.contracts {
-            println!(" - {}", name);
+        for (contract_name, _contract_id) in &self.contract_names {
+            println!(" - {}", contract_name);
         }
         println!();
 
         println!("PLAYERS ({})", self.players.len());
-        for (ref name, ref _player) in &self.players {
-            println!(" - {}", name);
+        for (player_name, _player_id) in &self.player_names {
+            println!(" - {}", player_name);
         }
         println!();
 
-        for (ref name, ref player) in &self.players {
-            println!("{}", name);
-            for (ref contract_id, (low, high)) in &player.ranges {
-                println!(" - {} {}-{}", contract_id, low, high);
+        for (player_name, player_id) in &self.player_names {
+            println!("{}", player_name);
+            let player = self.get_player(*player_id);
+            for (contract_name, contract_id) in &self.contract_names {
+                if let Some((low, high)) = player.ranges.get(contract_id) {
+                    println!(" - {} {}-{}", contract_name, low, high);
+                }
             }
             println!();
         }
@@ -120,16 +142,19 @@ impl Market {
 
     pub fn dump_aftermath(&self) {
         println!("IOUs ({})", self.ious.len());
-        for ref iou in &self.ious {
+        for iou in &self.ious {
+            let issuer_name = &self.get_player(iou.issuer_id).name;
+            let holder_name = &self.get_player(iou.holder_id).name;
+            let contract_name = &self.get_contract(iou.contract_id).name;
             if iou.condition {
                 println!(
                     " - {} owes {} to {} if {}",
-                    iou.issuer_id, iou.amount, iou.holder_id, iou.contract_id
+                    issuer_name, iou.amount, holder_name, contract_name
                 );
             } else {
                 println!(
                     " - {} owes {} to {} if NOT {}",
-                    iou.issuer_id, iou.amount, iou.holder_id, iou.contract_id
+                    issuer_name, iou.amount, holder_name, contract_name
                 );
             }
         }
@@ -138,22 +163,23 @@ impl Market {
         println!("OUTCOMES");
         println!();
 
-        for (ref player_id, ref _player) in &self.players {
-            println!("{}", player_id);
-            let exposure = self.calc_exposure(player_id);
+        for (player_name, player_id) in &self.player_names {
+            println!("{}", player_name);
+            let exposure = self.calc_exposure(*player_id);
             let otherwise = exposure.otherwise_outcome();
             let mut outcomes: Vec<(Price, ContractID)> = Vec::new();
-            for contract_id in self.contracts.keys() {
-                let outcome = exposure.outcome(contract_id);
+            for contract_id in self.contract_names.values() {
+                let outcome = exposure.outcome(*contract_id);
                 if outcome != 0 && outcome != otherwise {
-                    outcomes.push((outcome, contract_id.to_string()));
+                    outcomes.push((outcome, *contract_id));
                 }
             }
             if !outcomes.is_empty() || otherwise != 0 {
                 outcomes.sort();
                 outcomes.reverse();
                 for (outcome, contract_id) in outcomes.into_iter() {
-                    println!(" - {}: {}", contract_id, outcome);
+                    let contract = self.get_contract(contract_id);
+                    println!(" - {}: {}", contract.name, outcome);
                 }
                 if otherwise != 0 {
                     println!(" - other: {}", otherwise);
@@ -165,20 +191,20 @@ impl Market {
         }
     }
 
-    pub fn calc_exposure(&self, player_id: &PlayerID) -> Exposure {
+    pub fn calc_exposure(&self, player_id: PlayerID) -> Exposure {
         let mut exposure = Exposure::new();
         for iou in &self.ious {
-            if iou.issuer_id == *player_id {
+            if iou.issuer_id == player_id {
                 if iou.condition {
-                    exposure.add_exposure(&iou.contract_id, iou.amount);
+                    exposure.add_exposure(iou.contract_id, iou.amount);
                 } else {
-                    exposure.add_neg_exposure(&iou.contract_id, iou.amount);
+                    exposure.add_neg_exposure(iou.contract_id, iou.amount);
                 }
-            } else if iou.holder_id == *player_id {
+            } else if iou.holder_id == player_id {
                 if iou.condition {
-                    exposure.add_exposure(&iou.contract_id, -iou.amount);
+                    exposure.add_exposure(iou.contract_id, -iou.amount);
                 } else {
-                    exposure.add_neg_exposure(&iou.contract_id, -iou.amount);
+                    exposure.add_neg_exposure(iou.contract_id, -iou.amount);
                 }
             }
         }
@@ -187,8 +213,8 @@ impl Market {
 
     pub fn calc_exposure_to_contract(
         &self,
-        player_id: &PlayerID,
-        contract_id: &ContractID,
+        player_id: PlayerID,
+        contract_id: ContractID,
         condition: bool,
     ) -> Price {
         let exposure = self.calc_exposure(player_id);
@@ -199,15 +225,16 @@ impl Market {
         }
     }
 
-    pub fn check_credit_failure(&self, player_id: &PlayerID) {
-        let credit_limit = self.players.get(player_id).unwrap().credit_limit;
+    pub fn check_credit_failure(&self, player_id: PlayerID) {
+        let player = self.get_player(player_id);
         let exposure = self.calc_exposure(player_id);
-        for contract_id in self.contracts.keys() {
-            let ex = exposure.total_exposure_to_contract(contract_id);
-            if ex > credit_limit {
+        for contract_id in self.contract_names.values() {
+            let ex = exposure.total_exposure_to_contract(*contract_id);
+            if ex > player.credit_limit {
+                let contract = self.get_contract(*contract_id);
                 panic!(
                     "{}: {} exposed {} > {}",
-                    player_id, contract_id, ex, credit_limit
+                    player.name, contract.name, ex, player.credit_limit
                 );
             }
         }
@@ -215,17 +242,18 @@ impl Market {
 
     pub fn session(&mut self) {
         let mut session = Session::new();
-        for (ref player_id, ref player) in &self.players {
-            for (ref contract_id, (low, high)) in &player.ranges {
-                session.add_offers(contract_id, player_id, *low, *high);
+        for (_player_name, player_id) in &self.player_names {
+            let player = self.get_player(*player_id);
+            for (contract_id, (low, high)) in &player.ranges {
+                session.add_offers(*contract_id, *player_id, *low, *high);
             }
         }
 
         loop {
-            let trades = session.find_trades();
+            let trades = session.find_trades(self);
 
-            if let Some((_spread, ref contract_id, ref buyer_id, high, ref seller_id, low)) =
-                trades.iter().next()
+            if let Some((_spread, _contract_name, contract_id, buyer_id, high, seller_id, low)) =
+                trades.into_iter().next()
             {
                 let price = (low + high) / 2;
 
@@ -268,17 +296,17 @@ impl Market {
 
                 if trade_units > 0 {
                     let seller_iou = Iou {
-                        issuer_id: seller_id.to_string(),
-                        holder_id: buyer_id.to_string(),
-                        contract_id: contract_id.to_string(),
+                        issuer_id: seller_id,
+                        holder_id: buyer_id,
+                        contract_id: contract_id,
                         condition: true,
                         amount: trade_units * (100 - price),
                     };
 
                     let buyer_iou = Iou {
-                        issuer_id: buyer_id.to_string(),
-                        holder_id: seller_id.to_string(),
-                        contract_id: contract_id.to_string(),
+                        issuer_id: buyer_id,
+                        holder_id: seller_id,
+                        contract_id: contract_id,
                         condition: false,
                         amount: trade_units * price,
                     };
@@ -304,17 +332,17 @@ impl Market {
                 if buyer_maxed_out {
                     session
                         .offers
-                        .get_mut(contract_id)
+                        .get_mut(&contract_id)
                         .unwrap()
-                        .remove_buy_offer(*high, buyer_id);
+                        .remove_buy_offer(high, buyer_id);
                 }
 
                 if seller_maxed_out {
                     session
                         .offers
-                        .get_mut(contract_id)
+                        .get_mut(&contract_id)
                         .unwrap()
-                        .remove_sell_offer(*low, seller_id);
+                        .remove_sell_offer(low, seller_id);
                 }
             } else {
                 //println!("no trades!");
@@ -323,10 +351,10 @@ impl Market {
             }
         }
 
-        let spreads = session.find_spreads();
+        let spreads = session.find_spreads(self);
         println!("SPREADS ({})", spreads.len());
-        for (contract_id, (low, high)) in spreads.into_iter() {
-            println!(" - {} {}-{}", contract_id, low, high);
+        for (contract_name, (low, high)) in spreads.into_iter() {
+            println!(" - {} {}-{}", contract_name, low, high);
         }
         println!();
     }
@@ -340,52 +368,62 @@ impl Session {
 
     pub fn add_offers(
         &mut self,
-        contract_id: &ContractID,
-        player_id: &PlayerID,
+        contract_id: ContractID,
+        player_id: PlayerID,
         low: Price,
         high: Price,
     ) {
         let offers = self
             .offers
-            .entry(contract_id.clone())
+            .entry(contract_id)
             .or_insert_with(|| Offers::new());
         offers
             .buy
             .entry(low)
             .and_modify(|players| {
-                players.insert(player_id.clone());
+                players.insert(player_id);
             })
             .or_insert_with(|| {
                 let mut players = BTreeSet::new();
-                players.insert(player_id.clone());
+                players.insert(player_id);
                 players
             });
         offers
             .sell
             .entry(high)
             .and_modify(|players| {
-                players.insert(player_id.clone());
+                players.insert(player_id);
             })
             .or_insert_with(|| {
                 let mut players = BTreeSet::new();
-                players.insert(player_id.clone());
+                players.insert(player_id);
                 players
             });
     }
 
-    pub fn find_trades(&self) -> Vec<(Price, ContractID, PlayerID, Price, PlayerID, Price)> {
+    pub fn find_trades(
+        &self,
+        market: &Market,
+    ) -> Vec<(Price, String, ContractID, PlayerID, Price, PlayerID, Price)> {
         let mut trades = Vec::new();
-        for (ref contract_id, ref offers) in &self.offers {
+        for (contract_id, offers) in &self.offers {
+            let contract = market.get_contract(*contract_id);
             if let Some((high, buyers)) = offers.buy.iter().rev().next() {
                 if let Some((low, sellers)) = offers.sell.iter().next() {
                     if low <= high {
+                        let mut buyers: Vec<PlayerID> = buyers.iter().map(|x| *x).collect();
+                        let mut sellers: Vec<PlayerID> = sellers.iter().map(|x| *x).collect();
+                        // FIXME
+                        buyers.sort_by_key(|player_id| &market.get_player(*player_id).name);
+                        sellers.sort_by_key(|player_id| &market.get_player(*player_id).name);
                         //let salt = player_id.chars().fold(0, |x, c| x ^ (c as i32)); // FIXME
                         let buyer = buyers.iter().next().unwrap(); // FIXME
                         let seller = sellers.iter().next().unwrap(); // FIXME
                         let spread = high - low;
                         trades.push((
                             spread,
-                            contract_id.to_string(),
+                            contract.name.clone(), // for consistent ordering
+                            *contract_id,
                             buyer.clone(),
                             *high,
                             seller.clone(),
@@ -400,15 +438,16 @@ impl Session {
         trades
     }
 
-    pub fn find_spreads(&self) -> BTreeMap<ContractID, (Price, Price)> {
+    pub fn find_spreads(&self, market: &Market) -> BTreeMap<String, (Price, Price)> {
         let mut spreads = BTreeMap::new();
-        for (ref contract_id, ref offers) in &self.offers {
+        for (contract_id, offers) in &self.offers {
+            let contract = market.get_contract(*contract_id);
             let buy = *offers.buy.keys().rev().next().unwrap_or(&0);
             let sell = *offers.sell.keys().next().unwrap_or(&100);
             if sell <= buy {
-                panic!("you said no trades! {} {} {}", contract_id, buy, sell);
+                panic!("you said no trades! {} {} {}", contract.name, buy, sell);
             }
-            spreads.insert(contract_id.to_string(), (buy, sell));
+            spreads.insert(contract.name.clone(), (buy, sell));
         }
         spreads
     }
@@ -421,17 +460,17 @@ impl Offers {
         Offers { buy, sell }
     }
 
-    pub fn remove_buy_offer(&mut self, price: Price, player_id: &PlayerID) {
+    pub fn remove_buy_offer(&mut self, price: Price, player_id: PlayerID) {
         let buyers = self.buy.get_mut(&price).unwrap();
-        buyers.remove(player_id);
+        buyers.remove(&player_id);
         if buyers.is_empty() {
             self.buy.remove(&price);
         }
     }
 
-    pub fn remove_sell_offer(&mut self, price: Price, player_id: &PlayerID) {
+    pub fn remove_sell_offer(&mut self, price: Price, player_id: PlayerID) {
         let sellers = self.sell.get_mut(&price).unwrap();
-        sellers.remove(player_id);
+        sellers.remove(&player_id);
         if sellers.is_empty() {
             self.sell.remove(&price);
         }
@@ -455,8 +494,8 @@ impl Player {
         }
     }
 
-    pub fn set_range(&mut self, contract: impl Into<String>, low: Price, high: Price) {
-        self.ranges.insert(contract.into(), (low, high));
+    pub fn set_range(&mut self, contract_id: ContractID, low: Price, high: Price) {
+        self.ranges.insert(contract_id, (low, high));
     }
 }
 
@@ -470,12 +509,12 @@ impl Exposure {
         }
     }
 
-    fn exposure(&self, contract_id: &ContractID) -> Price {
-        *self.exposure.get(contract_id).unwrap_or(&0)
+    fn exposure(&self, contract_id: ContractID) -> Price {
+        *self.exposure.get(&contract_id).unwrap_or(&0)
     }
 
-    fn neg_exposure(&self, contract_id: &ContractID) -> Price {
-        *self.neg_exposure.get(contract_id).unwrap_or(&0)
+    fn neg_exposure(&self, contract_id: ContractID) -> Price {
+        *self.neg_exposure.get(&contract_id).unwrap_or(&0)
     }
 
     fn total_neg_exposure(&self) -> Price {
@@ -485,22 +524,22 @@ impl Exposure {
     // exposure to P:
     //  - how much debt we owe (net assets) conditional on P
     //  - plus how much debt we owe conditional on ~Q, where Q \= P
-    pub fn total_exposure_to_contract(&self, contract_id: &ContractID) -> Price {
+    pub fn total_exposure_to_contract(&self, contract_id: ContractID) -> Price {
         self.exposure(contract_id) + self.total_neg_exposure() - self.neg_exposure(contract_id)
     }
 
     // exposure to ~P:
     // - how much debt we owe (do *not* count assets!) conditional on ~Q for all Q
     // - plus biggest debt we owe conditional on Q where Q \= P
-    pub fn total_exposure_to_contract_neg(&self, contract_id: &ContractID) -> Price {
+    pub fn total_exposure_to_contract_neg(&self, contract_id: ContractID) -> Price {
         self.total_exposure_to_neg()
             + *self
                 .exposure
                 .iter()
-                .filter(|(name, amount)| {
-                    name.as_str() != contract_id.as_str() && amount.is_positive()
+                .filter(|(contract_id0, amount)| {
+                    **contract_id0 != contract_id && amount.is_positive()
                 })
-                .map(|(_name, amount)| amount)
+                .map(|(_contract_id, amount)| amount)
                 .max()
                 .unwrap_or(&0)
     }
@@ -511,7 +550,7 @@ impl Exposure {
         self.neg_exposure.values().filter(|x| x.is_positive()).sum()
     }
 
-    pub fn outcome(&self, contract_id: &ContractID) -> Price {
+    pub fn outcome(&self, contract_id: ContractID) -> Price {
         -self.total_exposure_to_contract(contract_id)
     }
 
@@ -519,16 +558,16 @@ impl Exposure {
         -self.total_neg_exposure()
     }
 
-    pub fn add_exposure(&mut self, contract_id: &ContractID, amount: Price) {
+    pub fn add_exposure(&mut self, contract_id: ContractID, amount: Price) {
         self.exposure
-            .entry(contract_id.to_string())
+            .entry(contract_id)
             .and_modify(|total| *total += amount)
             .or_insert(amount);
     }
 
-    pub fn add_neg_exposure(&mut self, contract_id: &ContractID, amount: Price) {
+    pub fn add_neg_exposure(&mut self, contract_id: ContractID, amount: Price) {
         self.neg_exposure
-            .entry(contract_id.to_string())
+            .entry(contract_id)
             .and_modify(|total| *total += amount)
             .or_insert(amount);
     }

@@ -1,7 +1,24 @@
 use std::cmp::{max, min};
 use std::collections::BTreeMap;
+use std::fmt::{self, Display, Formatter};
 
+// measured in cents
 type Price = i32;
+
+struct Dollars(Price);
+
+impl Display for Dollars {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let value = self.0.abs();
+        let dollars = value / 100;
+        let cents = value % 100;
+        if self.0 < 0 {
+            write!(f, "-${}.{:02}", dollars, cents)
+        } else {
+            write!(f, "${}.{:02}", dollars, cents)
+        }
+    }
+}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 struct ContractID(usize);
@@ -181,12 +198,18 @@ impl Market {
             if iou.condition {
                 println!(
                     " - {} owes {} to {} if {}",
-                    issuer_name, iou.amount, holder_name, contract_name
+                    issuer_name,
+                    Dollars(iou.amount),
+                    holder_name,
+                    contract_name
                 );
             } else {
                 println!(
                     " - {} owes {} to {} if NOT {}",
-                    issuer_name, iou.amount, holder_name, contract_name
+                    issuer_name,
+                    Dollars(iou.amount),
+                    holder_name,
+                    contract_name
                 );
             }
         }
@@ -211,10 +234,10 @@ impl Market {
                 outcomes.reverse();
                 for (outcome, contract_id) in outcomes.into_iter() {
                     let contract = self.get_contract(contract_id);
-                    println!(" - {}: {}", contract.name, outcome);
+                    println!(" - {}: {}", contract.name, Dollars(outcome));
                 }
                 if otherwise != 0 {
-                    println!(" - other: {}", otherwise);
+                    println!(" - other: {}", Dollars(otherwise));
                 }
             } else {
                 println!(" - no outcomes");

@@ -127,6 +127,7 @@ impl Market {
 
     pub fn player_ranges(&mut self, name: &str, ranges: Vec<(&str, Price, Price)>) {
         let player_id = *self.player_names.get(name).unwrap();
+        self.get_player_mut(player_id).clear_ranges();
         for (contract_name, low, high) in ranges {
             let contract_id = match self.contract_names.get(contract_name) {
                 Some(contract_id) => *contract_id,
@@ -560,6 +561,10 @@ impl Player {
             ranges,
             credit_limit,
         }
+    }
+
+    pub fn clear_ranges(&mut self) {
+        self.ranges.clear();
     }
 
     pub fn set_range(&mut self, contract_id: ContractID, low: Price, high: Price) {

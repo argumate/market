@@ -314,14 +314,14 @@ impl Market {
             {
                 let price = (low + high) / 2;
 
-                //println!("trade: {}", contract_id);
+                //println!("trade: {}", self.get_contract(contract_id).name);
                 //println!("price: {}", price);
                 //println!();
 
                 let buyer_max_amount = self.player_max_buy_amount(&session, buyer_id, contract_id);
                 let buyer_max_units = buyer_max_amount / price;
 
-                //println!("buyer: {}", buyer_id);
+                //println!("buyer: {}", self.get_player(buyer_id).name);
                 //println!("buyer_max_amount = {}", buyer_max_amount);
                 //println!("buyer_max_units = {}", buyer_max_units);
                 //println!();
@@ -330,13 +330,9 @@ impl Market {
                     self.player_max_sell_amount(&session, seller_id, contract_id);
                 let seller_max_units = seller_max_amount / (100 - price);
 
-                //println!("seller: {}", seller_id);
+                //println!("seller: {}", self.get_player(seller_id).name);
                 //println!("seller_max_amount = {}", seller_max_amount);
                 //println!("seller_max_units = {}", seller_max_units);
-                //println!();
-
-                //println!("buyer_maxed_out = {}", buyer_maxed_out);
-                //println!("seller_maxed_out = {}", seller_maxed_out);
                 //println!();
 
                 let trade_units = min(buyer_max_units, seller_max_units);
@@ -361,11 +357,17 @@ impl Market {
                     amount: trade_units * price,
                 };
 
-                //println!(
-                //    "{} {} units @ {} : {} -> {}",
-                //    contract_id, trade_units, price, seller_id, buyer_id
-                //);
-                //println!();
+                /*
+                println!(
+                    "{} {} units @ {} : {} -> {}",
+                    self.get_contract(contract_id).name,
+                    trade_units,
+                    price,
+                    self.get_player(seller_id).name,
+                    self.get_player(buyer_id).name
+                );
+                println!();
+                */
 
                 session.apply_iou(seller_iou);
                 session.apply_iou(buyer_iou);

@@ -714,6 +714,13 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 30 Nov 2019
+    setup_session4(&mut market);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -1166,4 +1173,147 @@ fn setup_session3(market: &mut Market) {
     );
 
     market.player_ranges("maybesimon", vec![("Biden", 75, 95), ("Warren", 25, 30)]);
+}
+
+fn setup_session4(market: &mut Market) {
+    market.new_contract("Bennet");
+    market.new_contract("Bullock");
+    market.new_contract("Delaney");
+    market.new_contract("Sestak");
+
+    market.increment_credit(1000);
+
+    market.new_player("utilitymonstermash");
+
+    market.player_ranges(
+        "ouroborostriumphant",
+        vec![
+            ("Biden", 30, 35),
+            ("Warren", 20, 25),
+            ("Buttigieg", 10, 20),
+            ("Sanders", 10, 15),
+            ("Buttigieg", 10, 20),
+            ("Harris", 2, 5),
+            ("Yang", 1, 5),
+            ("Bloomberg", 0, 1),
+            ("Patrick", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Gillibrand", 0, 1),
+            ("Klobuchar", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "von-hresvelg",
+        vec![
+            ("Biden", 40, 70),
+            ("Buttigieg", 5, 15),
+            ("Sanders", 20, 35),
+            ("Warren", 35, 50),
+            ("Yang", 0, 5),
+        ],
+    );
+
+    market.player_ranges(
+        "kwarrtz",
+        vec![
+            ("Warren", 40, 60),
+            ("Biden", 40, 60),
+            ("Sanders", 20, 25),
+            ("Buttigieg", 0, 20),
+            ("Harris", 0, 5),
+            ("Yang", 0, 1),
+            ("Steyer", 0, 1),
+            ("Patrick", 0, 5),
+            ("Bloomberg", 0, 10),
+            ("Klobuchar", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "utilitymonstermash",
+        vec![
+            ("Biden", 22, 42),
+            ("Bloomberg", 1, 5),
+            ("Booker", 0, 1),
+            ("Buttigieg", 1, 9),
+            ("Castro", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Gillibrand", 0, 1),
+            ("Harris", 4, 8),
+            ("Klobuchar", 1, 2),
+            ("Patrick", 0, 1),
+            ("Sanders", 6, 13),
+            ("Steyer", 0, 1),
+            ("Warren", 22, 33),
+            ("Williamson", 0, 1),
+            ("Yang", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "irradiate-space",
+        vec![
+            ("Biden", 5, 11),
+            ("Bloomberg", 5, 11),
+            ("Buttigieg", 5, 11),
+            ("Harris", 0, 1),
+            ("Sanders", 20, 31),
+            ("Warren", 20, 47),
+            ("Yang", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "squareallworthy",
+        vec![
+            ("Biden", 44, 45),
+            ("Buttigieg", 5, 10),
+            ("Harris", 1, 2),
+            ("Sanders", 8, 12),
+            ("Warren", 35, 36),
+            ("Yang", 0, 1),
+            ("Bloomberg", 0, 1),
+            ("Booker", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 1),
+            ("Patrick", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "cromulentenough",
+        vec![
+            ("Sanders", 25, 35),
+            ("Warren", 30, 40),
+            ("Biden", 15, 25),
+            ("Buttigieg", 15, 30),
+            ("Harris", 5, 10),
+            ("Gabbard", 1, 4),
+            ("Bloomberg", 1, 4),
+            ("Yang", 1, 4),
+            ("Klobuchar", 0, 2),
+            ("Bennet", 0, 2),
+            ("Booker", 0, 2),
+            ("Williamson", 0, 2),
+            ("Patrick", 0, 2),
+            ("Sestak", 0, 2),
+            ("Steyer", 0, 2),
+            ("Delaney", 0, 2),
+            ("Castro", 0, 2),
+            ("Bullock", 0, 2),
+        ],
+    );
+
+    market.player_ranges(
+        "birth-muffins-death",
+        vec![
+            ("Biden", 35, 75),
+            ("Warren", 10, 30),
+            ("Sanders", 5, 35),
+            ("Buttigieg", 1, 10),
+            ("Harris", 0, 1),
+            ("Yang", 0, 1),
+        ],
+    );
 }

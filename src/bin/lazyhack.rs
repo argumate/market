@@ -140,6 +140,7 @@ impl Market {
             None => {}
             Some(_old_player_id) => panic!("existing player: {}", new_name),
         }
+        self.get_player_mut(player_id).name = new_name.to_string();
     }
 
     pub fn player_ranges(&mut self, name: &str, ranges: Vec<(&str, Price, Price)>) {

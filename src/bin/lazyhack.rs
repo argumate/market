@@ -439,9 +439,35 @@ impl Session {
         let mut trades = Vec::new();
         for (contract_id, contract_offers) in &offers.offers {
             let contract = market.get_contract(*contract_id);
-            if let Some((high, buyers)) = contract_offers.buy.iter().rev().next() {
-                if let Some((low, sellers)) = contract_offers.sell.iter().next() {
+            let mut buy_iter = contract_offers.buy.iter().rev();
+            let mut sell_iter = contract_offers.sell.iter();
+            if let Some((high, buyers)) = buy_iter.next() {
+                if let Some((low, sellers)) = sell_iter.next() {
                     if low <= high {
+                        let mut low = low;
+                        let mut high = high;
+                        match (buy_iter.next(), sell_iter.next()) {
+                            (Some((next_high, _next_buyers)), Some((next_low, _next_sellers))) => {
+                                if next_low < next_high {
+                                    low = next_low;
+                                    high = next_high;
+                                    //println!("low={} next_low={} next_high={} high={}", low, next_low, next_high, high);
+                                }
+                            }
+                            (Some((next_high, _next_buyers)), None) => {
+                                if next_high > low {
+                                    high = next_high;
+                                    //println!("low={} next_high={} high={}", low, next_high, high);
+                                }
+                            }
+                            (None, Some((next_low, _next_sellers))) => {
+                                if next_low < high {
+                                    low = next_low;
+                                    //println!("low={} next_low={} high={}", low, next_low, high);
+                                }
+                            }
+                            (None, None) => {}
+                        }
                         let mut buyers: Vec<(Price, String, PlayerID)> = buyers
                             .iter()
                             .map(|(buyer_id, amount)| {

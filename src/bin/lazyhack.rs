@@ -46,9 +46,13 @@ struct Player {
 }
 
 struct Exposure {
-    player_id: PlayerID,
-    exposure: BTreeMap<ContractID, Price>,
-    neg_exposure: BTreeMap<ContractID, Price>,
+    conditional: BTreeMap<ContractID, ContractExposure>,
+}
+
+#[derive(Copy, Clone)]
+struct ContractExposure {
+    exposure: Price,
+    neg_exposure: Price,
 }
 
 struct Iou {
@@ -275,9 +279,13 @@ impl Market {
     }
 
     pub fn calc_exposure(&self, player_id: PlayerID) -> Exposure {
-        let mut exposure = Exposure::new(player_id);
+        let mut exposure = Exposure::new();
         for iou in &self.ious {
-            exposure.apply_iou(iou);
+            if iou.issuer_id == player_id {
+                exposure.apply_iou_issuer(iou.contract_id, iou.condition, iou.amount);
+            } else if iou.holder_id == player_id {
+                exposure.apply_iou_holder(iou.contract_id, iou.condition, iou.amount);
+            }
         }
         exposure
     }
@@ -324,11 +332,7 @@ impl Market {
     }
 
     pub fn session(&mut self) {
-        let mut session = Session::new();
-        for (_player_name, player_id) in &self.player_names {
-            let exposure = self.calc_exposure(*player_id);
-            session.exposures.insert(*player_id, exposure);
-        }
+        let mut session = Session::new(self);
 
         loop {
             let offers = session.find_offers(self);
@@ -394,8 +398,8 @@ impl Market {
                 println!();
                 */
 
-                session.apply_iou(seller_iou);
-                session.apply_iou(buyer_iou);
+                session.push_iou(seller_iou);
+                session.push_iou(buyer_iou);
 
                 self.check_credit_failure(buyer_id);
                 self.check_credit_failure(seller_id);
@@ -419,21 +423,33 @@ impl Market {
 }
 
 impl Session {
-    pub fn new() -> Self {
-        let exposures = BTreeMap::new();
+    pub fn new(market: &Market) -> Self {
+        let mut exposures = BTreeMap::new();
         let ious = Vec::new();
-        Session { exposures, ious }
+        for (_player_name, player_id) in &market.player_names {
+            let exposure = Exposure::new();
+            exposures.insert(*player_id, exposure);
+        }
+        let mut session = Session { exposures, ious };
+        for iou in &market.ious {
+            session.apply_iou(iou);
+        }
+        session
     }
 
-    pub fn apply_iou(&mut self, iou: Iou) {
+    fn apply_iou(&mut self, iou: &Iou) {
         self.exposures
             .get_mut(&iou.issuer_id)
             .unwrap()
-            .apply_iou(&iou);
+            .apply_iou_issuer(iou.contract_id, iou.condition, iou.amount);
         self.exposures
             .get_mut(&iou.holder_id)
             .unwrap()
-            .apply_iou(&iou);
+            .apply_iou_holder(iou.contract_id, iou.condition, iou.amount);
+    }
+
+    pub fn push_iou(&mut self, iou: Iou) {
+        self.apply_iou(&iou);
         self.ious.push(iou);
     }
 
@@ -658,42 +674,44 @@ impl Player {
 }
 
 impl Exposure {
-    pub fn new(player_id: PlayerID) -> Self {
-        let exposure = BTreeMap::new();
-        let neg_exposure = BTreeMap::new();
-        Exposure {
-            player_id,
-            exposure,
-            neg_exposure,
+    pub fn new() -> Self {
+        let conditional = BTreeMap::new();
+        Exposure { conditional }
+    }
+
+    pub fn apply_iou_issuer(&mut self, contract_id: ContractID, condition: bool, amount: Price) {
+        if condition {
+            self.add_exposure(contract_id, amount);
+        } else {
+            self.add_neg_exposure(contract_id, amount);
         }
     }
 
-    pub fn apply_iou(&mut self, iou: &Iou) {
-        if iou.issuer_id == self.player_id {
-            if iou.condition {
-                self.add_exposure(iou.contract_id, iou.amount);
-            } else {
-                self.add_neg_exposure(iou.contract_id, iou.amount);
-            }
-        } else if iou.holder_id == self.player_id {
-            if iou.condition {
-                self.add_exposure(iou.contract_id, -iou.amount);
-            } else {
-                self.add_neg_exposure(iou.contract_id, -iou.amount);
-            }
+    pub fn apply_iou_holder(&mut self, contract_id: ContractID, condition: bool, amount: Price) {
+        if condition {
+            self.add_exposure(contract_id, -amount);
+        } else {
+            self.add_neg_exposure(contract_id, -amount);
         }
+    }
+
+    fn contract_exposure(&self, contract_id: ContractID) -> ContractExposure {
+        self.conditional
+            .get(&contract_id)
+            .map(|x| *x)
+            .unwrap_or(ContractExposure::zero())
     }
 
     fn exposure(&self, contract_id: ContractID) -> Price {
-        *self.exposure.get(&contract_id).unwrap_or(&0)
+        self.contract_exposure(contract_id).exposure
     }
 
     fn neg_exposure(&self, contract_id: ContractID) -> Price {
-        *self.neg_exposure.get(&contract_id).unwrap_or(&0)
+        self.contract_exposure(contract_id).neg_exposure
     }
 
     fn total_neg_exposure(&self) -> Price {
-        self.neg_exposure.values().sum()
+        self.conditional.values().map(|x| x.neg_exposure).sum()
     }
 
     // exposure to P:
@@ -708,21 +726,25 @@ impl Exposure {
     // - plus biggest debt we owe conditional on Q where Q \= P
     pub fn total_exposure_to_contract_neg(&self, contract_id: ContractID) -> Price {
         self.total_exposure_to_neg()
-            + *self
-                .exposure
+            + self
+                .conditional
                 .iter()
-                .filter(|(contract_id0, amount)| {
-                    **contract_id0 != contract_id && amount.is_positive()
+                .filter(|(contract_id0, contract_exposure)| {
+                    **contract_id0 != contract_id && contract_exposure.exposure.is_positive()
                 })
-                .map(|(_contract_id, amount)| amount)
+                .map(|(_contract_id, contract_exposure)| contract_exposure.exposure)
                 .max()
-                .unwrap_or(&0)
+                .unwrap_or(0)
     }
 
     // worst case exposure to ~Q for all Q:
     // - how much debt we owe (do *not* count assets!) conditional on ~Q for all Q
     pub fn total_exposure_to_neg(&self) -> Price {
-        self.neg_exposure.values().filter(|x| x.is_positive()).sum()
+        self.conditional
+            .values()
+            .map(|x| x.neg_exposure)
+            .filter(|x| x.is_positive())
+            .sum()
     }
 
     pub fn outcome(&self, contract_id: ContractID) -> Price {
@@ -734,17 +756,40 @@ impl Exposure {
     }
 
     pub fn add_exposure(&mut self, contract_id: ContractID, amount: Price) {
-        self.exposure
+        self.conditional
             .entry(contract_id)
-            .and_modify(|total| *total += amount)
-            .or_insert(amount);
+            .and_modify(|contract_exposure| contract_exposure.exposure += amount)
+            .or_insert(ContractExposure::exposure(amount));
     }
 
     pub fn add_neg_exposure(&mut self, contract_id: ContractID, amount: Price) {
-        self.neg_exposure
+        self.conditional
             .entry(contract_id)
-            .and_modify(|total| *total += amount)
-            .or_insert(amount);
+            .and_modify(|contract_exposure| contract_exposure.neg_exposure += amount)
+            .or_insert(ContractExposure::neg_exposure(amount));
+    }
+}
+
+impl ContractExposure {
+    pub fn zero() -> Self {
+        ContractExposure {
+            exposure: 0,
+            neg_exposure: 0,
+        }
+    }
+
+    pub fn exposure(exposure: Price) -> Self {
+        ContractExposure {
+            exposure,
+            neg_exposure: 0,
+        }
+    }
+
+    pub fn neg_exposure(neg_exposure: Price) -> Self {
+        ContractExposure {
+            exposure: 0,
+            neg_exposure,
+        }
     }
 }
 

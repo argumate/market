@@ -36,6 +36,7 @@ struct Market {
 
 struct Contract {
     name: String,
+    outcome: Option<bool>,
 }
 
 struct Player {
@@ -92,6 +93,10 @@ impl Market {
         &self.contracts[contract_id.0]
     }
 
+    pub fn get_contract_mut(&mut self, contract_id: ContractID) -> &mut Contract {
+        &mut self.contracts[contract_id.0]
+    }
+
     pub fn get_player(&self, player_id: PlayerID) -> &Player {
         &self.players[player_id.0]
     }
@@ -126,6 +131,21 @@ impl Market {
         self.add_contract(contract);
     }
 
+    pub fn contract_outcome(&mut self, name: &str, outcome: bool) {
+        let contract_id = match self.contract_names.get(name) {
+            Some(contract_id) => *contract_id,
+            None => panic!("no such contract: {}", name),
+        };
+        let contract = self.get_contract_mut(contract_id);
+        match contract.outcome {
+            None => contract.outcome = Some(outcome),
+            Some(_outcome) => panic!("contract already has outcome: {}", name),
+        }
+        for player in &mut self.players {
+            player.ranges.remove(&contract_id);
+        }
+    }
+
     pub fn new_player(&mut self, name: &str) {
         let player = Player::new(name);
         self.add_player(player);
@@ -154,6 +174,10 @@ impl Market {
                 Some(contract_id) => *contract_id,
                 None => panic!("contract does not exist: {}", contract_name),
             };
+            match self.get_contract(contract_id).outcome {
+                None => {}
+                Some(_outcome) => panic!("contract already has outcome: {}", contract_name),
+            }
             if !(0 <= low && low < high && high <= 100) {
                 panic!("invalid range: {} {}-{}", contract_name, low, high);
             }
@@ -582,12 +606,14 @@ impl Offers {
         let mut spreads = BTreeMap::new();
         for (contract_id, offers) in &self.offers {
             let contract = market.get_contract(*contract_id);
-            let buy = *offers.buy.keys().rev().next().unwrap_or(&0);
-            let sell = *offers.sell.keys().next().unwrap_or(&100);
-            if sell <= buy {
-                panic!("you said no trades! {} {} {}", contract.name, buy, sell);
+            if contract.outcome == None {
+                let buy = *offers.buy.keys().rev().next().unwrap_or(&0);
+                let sell = *offers.sell.keys().next().unwrap_or(&100);
+                if sell <= buy {
+                    panic!("you said no trades! {} {} {}", contract.name, buy, sell);
+                }
+                spreads.insert(contract.name.clone(), (buy, sell));
             }
-            spreads.insert(contract.name.clone(), (buy, sell));
         }
         spreads
     }
@@ -603,7 +629,11 @@ impl ContractOffers {
 
 impl Contract {
     pub fn new(name: impl Into<String>) -> Self {
-        Contract { name: name.into() }
+        let outcome = None;
+        Contract {
+            name: name.into(),
+            outcome,
+        }
     }
 }
 
@@ -744,6 +774,13 @@ fn main() {
 
     // Sat 30 Nov 2019
     setup_session4(&mut market);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
+
+    // Sat 07 Dec 2019
+    setup_session5(&mut market);
 
     market.dump();
     market.session();
@@ -1343,4 +1380,11 @@ fn setup_session4(market: &mut Market) {
             ("Yang", 0, 1),
         ],
     );
+}
+
+fn setup_session5(market: &mut Market) {
+    market.contract_outcome("Harris", false);
+    market.contract_outcome("Bullock", false);
+    market.contract_outcome("Sestak", false);
+    market.contract_outcome("Gillibrand", false);
 }

@@ -46,6 +46,7 @@ struct Player {
 }
 
 struct Exposure {
+    unconditional: Price,
     conditional: BTreeMap<ContractID, ContractExposure>,
 }
 
@@ -58,9 +59,21 @@ struct ContractExposure {
 struct Iou {
     pub issuer_id: PlayerID,
     pub holder_id: PlayerID,
-    pub contract_id: ContractID,
-    pub condition: bool,
+    pub status: IouStatus,
     pub amount: Price,
+}
+
+#[derive(Eq, PartialEq)]
+enum IouStatus {
+    Void(Condition),
+    True(Condition),
+    Unknown(Condition),
+}
+
+#[derive(Eq, PartialEq)]
+enum Condition {
+    If(ContractID),
+    Not(ContractID),
 }
 
 struct Session {
@@ -148,6 +161,21 @@ impl Market {
         for player in &mut self.players {
             player.ranges.remove(&contract_id);
         }
+        for iou in &mut self.ious {
+            if iou.status == IouStatus::Unknown(Condition::If(contract_id)) {
+                if outcome {
+                    iou.status = IouStatus::True(Condition::If(contract_id));
+                } else {
+                    iou.status = IouStatus::Void(Condition::If(contract_id));
+                }
+            } else if iou.status == IouStatus::Unknown(Condition::Not(contract_id)) {
+                if outcome {
+                    iou.status = IouStatus::Void(Condition::Not(contract_id));
+                } else {
+                    iou.status = IouStatus::True(Condition::Not(contract_id));
+                }
+            }
+        }
     }
 
     pub fn new_player(&mut self, name: &str) {
@@ -226,23 +254,31 @@ impl Market {
         for iou in &self.ious {
             let issuer_name = &self.get_player(iou.issuer_id).name;
             let holder_name = &self.get_player(iou.holder_id).name;
-            let contract_name = &self.get_contract(iou.contract_id).name;
-            if iou.condition {
-                println!(
-                    " - {} owes {} to {} if {}",
+            match iou.status.decompose() {
+                (Condition::If(contract_id), outcome) => println!(
+                    " - {} owes {} to {} if {}{}",
                     issuer_name,
                     Dollars(iou.amount),
                     holder_name,
-                    contract_name
-                );
-            } else {
-                println!(
-                    " - {} owes {} to {} if NOT {}",
+                    self.get_contract(*contract_id).name,
+                    match outcome {
+                        Some(false) => " -- VOID",
+                        Some(true) => " -- TRUE",
+                        None => "",
+                    }
+                ),
+                (Condition::Not(contract_id), outcome) => println!(
+                    " - {} owes {} to {} if NOT {}{}",
                     issuer_name,
                     Dollars(iou.amount),
                     holder_name,
-                    contract_name
-                );
+                    self.get_contract(*contract_id).name,
+                    match outcome {
+                        Some(false) => " -- VOID",
+                        Some(true) => " -- TRUE",
+                        None => "",
+                    }
+                ),
             }
         }
         println!();
@@ -282,9 +318,9 @@ impl Market {
         let mut exposure = Exposure::new();
         for iou in &self.ious {
             if iou.issuer_id == player_id {
-                exposure.apply_iou_issuer(iou.contract_id, iou.condition, iou.amount);
+                exposure.apply_iou_issuer(&iou.status, iou.amount);
             } else if iou.holder_id == player_id {
-                exposure.apply_iou_holder(iou.contract_id, iou.condition, iou.amount);
+                exposure.apply_iou_holder(&iou.status, iou.amount);
             }
         }
         exposure
@@ -305,16 +341,34 @@ impl Market {
             let mut total = 0;
             for iou in self.ious.iter().chain(session.ious.iter()) {
                 if iou.issuer_id == player_id {
-                    if iou.contract_id == *contract_id && iou.condition {
-                        total += iou.amount;
-                    } else if iou.contract_id != *contract_id && !iou.condition {
-                        total += iou.amount;
+                    match iou.status {
+                        IouStatus::Void(_) => {}
+                        IouStatus::True(_) => total += iou.amount,
+                        IouStatus::Unknown(Condition::If(contract_id0)) => {
+                            if contract_id0 == *contract_id {
+                                total += iou.amount;
+                            }
+                        }
+                        IouStatus::Unknown(Condition::Not(contract_id0)) => {
+                            if contract_id0 != *contract_id {
+                                total += iou.amount;
+                            }
+                        }
                     }
                 } else if iou.holder_id == player_id {
-                    if iou.contract_id == *contract_id && iou.condition {
-                        total -= iou.amount;
-                    } else if iou.contract_id != *contract_id && !iou.condition {
-                        total -= iou.amount;
+                    match iou.status {
+                        IouStatus::Void(_) => {}
+                        IouStatus::True(_) => total -= iou.amount,
+                        IouStatus::Unknown(Condition::If(contract_id0)) => {
+                            if contract_id0 == *contract_id {
+                                total -= iou.amount;
+                            }
+                        }
+                        IouStatus::Unknown(Condition::Not(contract_id0)) => {
+                            if contract_id0 != *contract_id {
+                                total -= iou.amount;
+                            }
+                        }
                     }
                 }
             }
@@ -392,16 +446,14 @@ impl Market {
                 let seller_iou = Iou {
                     issuer_id: seller_id,
                     holder_id: buyer_id,
-                    contract_id: contract_id,
-                    condition: true,
+                    status: IouStatus::Unknown(Condition::If(contract_id)),
                     amount: trade_units * (100 - price),
                 };
 
                 let buyer_iou = Iou {
                     issuer_id: buyer_id,
                     holder_id: seller_id,
-                    contract_id: contract_id,
-                    condition: false,
+                    status: IouStatus::Unknown(Condition::Not(contract_id)),
                     amount: trade_units * price,
                 };
 
@@ -460,11 +512,11 @@ impl Session {
         self.exposures
             .get_mut(&iou.issuer_id)
             .unwrap()
-            .apply_iou_issuer(iou.contract_id, iou.condition, iou.amount);
+            .apply_iou_issuer(&iou.status, iou.amount);
         self.exposures
             .get_mut(&iou.holder_id)
             .unwrap()
-            .apply_iou_holder(iou.contract_id, iou.condition, iou.amount);
+            .apply_iou_holder(&iou.status, iou.amount);
     }
 
     pub fn push_iou(&mut self, iou: Iou) {
@@ -694,23 +746,37 @@ impl Player {
 
 impl Exposure {
     pub fn new() -> Self {
+        let unconditional = 0;
         let conditional = BTreeMap::new();
-        Exposure { conditional }
-    }
-
-    pub fn apply_iou_issuer(&mut self, contract_id: ContractID, condition: bool, amount: Price) {
-        if condition {
-            self.add_exposure(contract_id, amount);
-        } else {
-            self.add_neg_exposure(contract_id, amount);
+        Exposure {
+            unconditional,
+            conditional,
         }
     }
 
-    pub fn apply_iou_holder(&mut self, contract_id: ContractID, condition: bool, amount: Price) {
-        if condition {
-            self.add_exposure(contract_id, -amount);
-        } else {
-            self.add_neg_exposure(contract_id, -amount);
+    pub fn apply_iou_issuer(&mut self, status: &IouStatus, amount: Price) {
+        match status {
+            IouStatus::Void(_) => {}
+            IouStatus::True(_) => self.unconditional += amount,
+            IouStatus::Unknown(Condition::If(contract_id)) => {
+                self.add_exposure(*contract_id, amount)
+            }
+            IouStatus::Unknown(Condition::Not(contract_id)) => {
+                self.add_neg_exposure(*contract_id, amount)
+            }
+        }
+    }
+
+    pub fn apply_iou_holder(&mut self, status: &IouStatus, amount: Price) {
+        match status {
+            IouStatus::Void(_) => {}
+            IouStatus::True(_) => self.unconditional -= amount,
+            IouStatus::Unknown(Condition::If(contract_id)) => {
+                self.add_exposure(*contract_id, -amount)
+            }
+            IouStatus::Unknown(Condition::Not(contract_id)) => {
+                self.add_neg_exposure(*contract_id, -amount)
+            }
         }
     }
 
@@ -730,8 +796,9 @@ impl Exposure {
     }
 
     // exposure to P:
-    //  - how much debt minus assets we owe conditional on P
-    //  - plus how much debt minus assets we owe conditional on ~Q, where Q \= P
+    // - how much debt minus assets we owe conditional on P
+    // - plus how much debt minus assets we owe conditional on ~Q, where Q \= P
+    // - plus unconditional debt
     pub fn total_exposure_to_contract(&self, contract_id: ContractID) -> Price {
         self.exposure(contract_id) + self.total_neg_exposure() - self.neg_exposure(contract_id)
     }
@@ -739,7 +806,8 @@ impl Exposure {
     // exposure to ~P:
     // - how much debt minus assets we owe conditional on ~Q for all Q
     // - plus biggest [ debt minus assets we owe conditional on Q where Q \= P
-    //   minus the debt minus assets we owe conditional on ~Q ] if positive.
+    //     minus the debt minus assets we owe conditional on ~Q ] if positive
+    // - plus unconditional debt
     pub fn total_exposure_to_contract_neg(&self, contract_id: ContractID) -> Price {
         self.total_neg_exposure()
             + max(
@@ -757,8 +825,10 @@ impl Exposure {
 
     // total exposure to ~Q for all Q:
     // - how much debt minus assets we owe conditional on ~Q for all Q
+    // - plus unconditional debt
     pub fn total_neg_exposure(&self) -> Price {
-        self.conditional.values().map(|x| x.neg_exposure).sum()
+        let neg: Price = self.conditional.values().map(|x| x.neg_exposure).sum();
+        neg + self.unconditional
     }
 
     pub fn outcome(&self, contract_id: ContractID) -> Price {
@@ -803,6 +873,16 @@ impl ContractExposure {
         ContractExposure {
             exposure: 0,
             neg_exposure,
+        }
+    }
+}
+
+impl IouStatus {
+    pub fn decompose(&self) -> (&Condition, Option<bool>) {
+        match self {
+            IouStatus::Void(condition) => (condition, Some(false)),
+            IouStatus::True(condition) => (condition, Some(true)),
+            IouStatus::Unknown(condition) => (condition, None),
         }
     }
 }

@@ -290,9 +290,9 @@ impl Market {
         exposure
     }
 
-    pub fn check_credit_failure(&self, player_id: PlayerID) {
+    pub fn check_credit_failure(&self, session: &Session, player_id: PlayerID) {
         let player = self.get_player(player_id);
-        let exposure = self.calc_exposure(player_id);
+        let exposure = session.exposures.get(&player_id).unwrap();
         for contract_id in self.contract_names.values() {
             let ex = exposure.total_exposure_to_contract(*contract_id);
             if ex > player.credit_limit {
@@ -301,6 +301,25 @@ impl Market {
                     "{}: {} exposed {} > {}",
                     player.name, contract.name, ex, player.credit_limit
                 );
+            }
+            let mut total = 0;
+            for iou in self.ious.iter().chain(session.ious.iter()) {
+                if iou.issuer_id == player_id {
+                    if iou.contract_id == *contract_id && iou.condition {
+                        total += iou.amount;
+                    } else if iou.contract_id != *contract_id && !iou.condition {
+                        total += iou.amount;
+                    }
+                } else if iou.holder_id == player_id {
+                    if iou.contract_id == *contract_id && iou.condition {
+                        total -= iou.amount;
+                    } else if iou.contract_id != *contract_id && !iou.condition {
+                        total -= iou.amount;
+                    }
+                }
+            }
+            if ex != total {
+                panic!("exposure does not match: {} vs. {}", ex, total);
             }
         }
     }
@@ -401,8 +420,8 @@ impl Market {
                 session.push_iou(seller_iou);
                 session.push_iou(buyer_iou);
 
-                self.check_credit_failure(buyer_id);
-                self.check_credit_failure(seller_id);
+                self.check_credit_failure(&session, buyer_id);
+                self.check_credit_failure(&session, seller_id);
             } else {
                 //println!("no trades!");
                 //println!();

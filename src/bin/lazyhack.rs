@@ -710,41 +710,36 @@ impl Exposure {
         self.contract_exposure(contract_id).neg_exposure
     }
 
-    fn total_neg_exposure(&self) -> Price {
-        self.conditional.values().map(|x| x.neg_exposure).sum()
-    }
-
     // exposure to P:
-    //  - how much debt we owe (net assets) conditional on P
-    //  - plus how much debt we owe conditional on ~Q, where Q \= P
+    //  - how much debt minus assets we owe conditional on P
+    //  - plus how much debt minus assets we owe conditional on ~Q, where Q \= P
     pub fn total_exposure_to_contract(&self, contract_id: ContractID) -> Price {
         self.exposure(contract_id) + self.total_neg_exposure() - self.neg_exposure(contract_id)
     }
 
     // exposure to ~P:
-    // - how much debt we owe (do *not* count assets!) conditional on ~Q for all Q
-    // - plus biggest debt we owe conditional on Q where Q \= P
+    // - how much debt minus assets we owe conditional on ~Q for all Q
+    // - plus biggest [ debt minus assets we owe conditional on Q where Q \= P
+    //   minus the debt minus assets we owe conditional on ~Q ] if positive.
     pub fn total_exposure_to_contract_neg(&self, contract_id: ContractID) -> Price {
-        self.total_exposure_to_neg()
-            + self
-                .conditional
-                .iter()
-                .filter(|(contract_id0, contract_exposure)| {
-                    **contract_id0 != contract_id && contract_exposure.exposure.is_positive()
-                })
-                .map(|(_contract_id, contract_exposure)| contract_exposure.exposure)
-                .max()
-                .unwrap_or(0)
+        self.total_neg_exposure()
+            + max(
+                0,
+                self.conditional
+                    .iter()
+                    .filter(|(contract_id0, _contract_exposure)| **contract_id0 != contract_id)
+                    .map(|(_contract_id0, contract_exposure)| {
+                        contract_exposure.exposure - contract_exposure.neg_exposure
+                    })
+                    .max()
+                    .unwrap_or(0),
+            )
     }
 
-    // worst case exposure to ~Q for all Q:
-    // - how much debt we owe (do *not* count assets!) conditional on ~Q for all Q
-    pub fn total_exposure_to_neg(&self) -> Price {
-        self.conditional
-            .values()
-            .map(|x| x.neg_exposure)
-            .filter(|x| x.is_positive())
-            .sum()
+    // total exposure to ~Q for all Q:
+    // - how much debt minus assets we owe conditional on ~Q for all Q
+    pub fn total_neg_exposure(&self) -> Price {
+        self.conditional.values().map(|x| x.neg_exposure).sum()
     }
 
     pub fn outcome(&self, contract_id: ContractID) -> Price {

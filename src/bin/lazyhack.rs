@@ -1526,4 +1526,133 @@ fn setup_session5(market: &mut Market) {
     market.contract_outcome("Bullock", false);
     market.contract_outcome("Sestak", false);
     market.contract_outcome("Gillibrand", false);
+
+    market.increment_credit(1000);
+
+    market.new_player("worriedaboutmyfern");
+    market.new_player("ijime-deactivated20150440");
+
+    market.player_ranges(
+        "placid-platypus",
+        vec![
+            ("Biden", 30, 45),
+            ("Warren", 25, 35),
+            ("Sanders", 12, 16),
+            ("Buttigieg", 12, 20),
+            ("Yang", 1, 6),
+            ("Klobuchar", 1, 4),
+            ("Booker", 0, 1),
+            ("Castro", 0, 1),
+            ("Patrick", 0, 2),
+            ("Bloomberg", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Williamson", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "squareallworthy",
+        vec![
+            ("Biden", 49, 50),
+            ("Bloomberg", 0, 1),
+            ("Booker", 0, 1),
+            ("Buttigieg", 5, 11),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 1),
+            ("Patrick", 0, 1),
+            ("Sanders", 8, 12),
+            ("Warren", 35, 36),
+            ("Yang", 0, 1),
+            ("Williamson", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "the-moti",
+        vec![
+            ("Biden", 22, 27),
+            ("Buttigieg", 18, 21),
+            ("Warren", 16, 18),
+            ("Sanders", 12, 17),
+            ("Bloomberg", 4, 13),
+            ("Yang", 3, 8),
+            ("Klobuchar", 1, 4),
+            ("Gabbard", 0, 2),
+            ("Booker", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "irradiate-space",
+        vec![
+            ("Biden", 5, 11),
+            ("Bloomberg", 5, 11),
+            ("Buttigieg", 5, 11),
+            ("Sanders", 20, 31),
+            ("Steyer", 2, 5),
+            ("Warren", 25, 57),
+            ("Yang", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "worriedaboutmyfern",
+        vec![
+            ("Biden", 55, 80),
+            ("Warren", 10, 20),
+            ("Buttigieg", 10, 20),
+            ("Sanders", 0, 5),
+        ],
+    );
+
+    market.player_ranges(
+        "ijime-deactivated20150440",
+        vec![
+            ("Biden", 10, 15),
+            ("Sanders", 10, 20),
+            ("Warren", 10, 40),
+            ("Klobuchar", 0, 1),
+            ("Buttigieg", 10, 15),
+            ("Gabbard", 3, 10),
+            ("Booker", 2, 5),
+            ("Williamson", 2, 5),
+            ("Yang", 3, 25),
+        ],
+    );
+
+    market.player_ranges(
+        "utilitymonstermash",
+        vec![
+            ("Bennet", 0, 1),
+            ("Biden", 21, 45),
+            ("Bloomberg", 4, 12),
+            ("Booker", 0, 1),
+            ("Buttigieg", 18, 33),
+            ("Castro", 0, 1),
+            ("Delaney", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 1),
+            ("Patrick", 0, 1),
+            ("Sanders", 4, 10),
+            ("Steyer", 0, 1),
+            ("Warren", 21, 45),
+            ("Williamson", 0, 1),
+            ("Yang", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "kwarrtz",
+        vec![
+            ("Warren", 40, 60),
+            ("Biden", 40, 60),
+            ("Sanders", 10, 20),
+            ("Buttigieg", 5, 25),
+            ("Yang", 0, 1),
+            ("Steyer", 0, 1),
+            ("Patrick", 0, 5),
+            ("Bloomberg", 0, 10),
+            ("Klobuchar", 0, 1),
+        ],
+    );
 }

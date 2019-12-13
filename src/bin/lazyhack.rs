@@ -924,6 +924,13 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 14 Dec 2019
+    setup_session6(&mut market);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -1653,6 +1660,65 @@ fn setup_session5(market: &mut Market) {
             ("Patrick", 0, 5),
             ("Bloomberg", 0, 10),
             ("Klobuchar", 0, 1),
+        ],
+    );
+}
+
+fn setup_session6(market: &mut Market) {
+    market.increment_credit(1000);
+
+    market.player_ranges(
+        "ouroborostriumphant",
+        vec![
+            ("Biden", 35, 40),
+            ("Warren", 20, 25),
+            ("Sanders", 15, 20),
+            ("Buttigieg", 15, 20),
+            ("Yang", 1, 4),
+            ("Patrick", 0, 2),
+            ("Bloomberg", 0, 2),
+            ("Steyer", 0, 1),
+            ("Klobuchar", 0, 1),
+            ("Bennet", 0, 1),
+            ("Booker", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Williamson", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "utilitymonstermash",
+        vec![
+            ("Bennet", 0, 1),
+            ("Biden", 27, 60),
+            ("Bloomberg", 4, 12),
+            ("Booker", 0, 1),
+            ("Buttigieg", 10, 27),
+            ("Castro", 0, 1),
+            ("Delaney", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 2),
+            ("Patrick", 0, 1),
+            ("Sanders", 4, 12),
+            ("Steyer", 0, 1),
+            ("Warren", 26, 60),
+            ("Williamson", 0, 1),
+            ("Yang", 0, 2),
+        ],
+    );
+
+    market.player_ranges(
+        "ijime-deactivated20150440",
+        vec![
+            ("Biden", 10, 15),
+            ("Sanders", 10, 20),
+            ("Warren", 10, 34),
+            ("Klobuchar", 0, 1),
+            ("Buttigieg", 10, 30),
+            ("Gabbard", 3, 6),
+            ("Booker", 2, 5),
+            ("Williamson", 2, 5),
+            ("Yang", 3, 15),
         ],
     );
 }

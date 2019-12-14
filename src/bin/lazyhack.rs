@@ -727,7 +727,7 @@ impl Contract {
 impl Player {
     pub fn new(name: impl Into<String>) -> Self {
         let ranges = BTreeMap::new();
-        let credit_limit = 1000;
+        let credit_limit = 0;
         Player {
             name: name.into(),
             ranges,
@@ -892,6 +892,7 @@ fn main() {
 
     // Sun 10 Nov 2019
     setup_session1(&mut market);
+    market.increment_credit(1000);
 
     market.dump();
     market.session();
@@ -899,6 +900,7 @@ fn main() {
 
     // Sat 16 Nov 2019
     setup_session2(&mut market);
+    market.increment_credit(1000);
 
     market.dump();
     market.session();
@@ -906,6 +908,7 @@ fn main() {
 
     // Sat 23 Nov 2019
     setup_session3(&mut market);
+    market.increment_credit(1000);
 
     market.dump();
     market.session();
@@ -913,6 +916,7 @@ fn main() {
 
     // Sat 30 Nov 2019
     setup_session4(&mut market);
+    market.increment_credit(1000);
 
     market.dump();
     market.session();
@@ -920,6 +924,7 @@ fn main() {
 
     // Sat 07 Dec 2019
     setup_session5(&mut market);
+    market.increment_credit(1000);
 
     market.dump();
     market.session();
@@ -927,6 +932,7 @@ fn main() {
 
     // Sat 14 Dec 2019
     setup_session6(&mut market);
+    market.increment_credit(1000);
 
     market.dump();
     market.session();
@@ -1118,8 +1124,6 @@ fn setup_session1(market: &mut Market) {
 fn setup_session2(market: &mut Market) {
     market.new_contract("Patrick");
 
-    market.increment_credit(1000);
-
     market.new_player("birth-muffins-death");
     market.new_player("bibliolithid");
     market.new_player("firebendinglemur");
@@ -1294,8 +1298,6 @@ fn setup_session2(market: &mut Market) {
 fn setup_session3(market: &mut Market) {
     market.new_contract("Bloomberg");
 
-    market.increment_credit(1000);
-
     market.new_player("maybesimon");
 
     market.player_ranges(
@@ -1390,8 +1392,6 @@ fn setup_session4(market: &mut Market) {
     market.new_contract("Bullock");
     market.new_contract("Delaney");
     market.new_contract("Sestak");
-
-    market.increment_credit(1000);
 
     market.new_player("utilitymonstermash");
 
@@ -1534,8 +1534,6 @@ fn setup_session5(market: &mut Market) {
     market.contract_outcome("Sestak", false);
     market.contract_outcome("Gillibrand", false);
 
-    market.increment_credit(1000);
-
     market.new_player("worriedaboutmyfern");
     market.new_player("ijime-deactivated20150440");
 
@@ -1665,8 +1663,6 @@ fn setup_session5(market: &mut Market) {
 }
 
 fn setup_session6(market: &mut Market) {
-    market.increment_credit(1000);
-
     market.player_ranges(
         "ouroborostriumphant",
         vec![

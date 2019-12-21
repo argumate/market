@@ -937,6 +937,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 21 Dec 2019
+    setup_session7(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -1715,6 +1723,87 @@ fn setup_session6(market: &mut Market) {
             ("Booker", 2, 5),
             ("Williamson", 2, 5),
             ("Yang", 3, 15),
+        ],
+    );
+}
+
+fn setup_session7(market: &mut Market) {
+    market.new_player("thomas-midgley-did-nothing-wrong");
+    market.new_player("goatsgomoo");
+
+    market.player_ranges(
+        "tremorbond",
+        vec![
+            ("Biden", 33, 39),
+            ("Warren", 24, 28),
+            ("Sanders", 18, 22),
+            ("Buttigieg", 10, 12),
+            ("Yang", 1, 3),
+            ("Bloomberg", 0, 1),
+            ("Klobuchar", 1, 2),
+        ],
+    );
+
+    market.player_ranges(
+        "thomas-midgley-did-nothing-wrong",
+        vec![
+            ("Biden", 25, 40),
+            ("Sanders", 15, 35),
+            ("Warren", 35, 55),
+            ("Yang", 1, 5),
+        ],
+    );
+
+    market.player_ranges(
+        "von-hresvelg",
+        vec![
+            ("Warren", 30, 80),
+            ("Sanders", 25, 60),
+            ("Yang", 10, 40),
+            ("Buttigieg", 2, 10),
+            ("Biden", 15, 25),
+        ],
+    );
+
+    market.player_ranges(
+        "utilitymonstermash",
+        vec![
+            ("Bennet", 0, 1),
+            ("Biden", 27, 60),
+            ("Bloomberg", 6, 22),
+            ("Booker", 0, 1),
+            ("Buttigieg", 9, 29),
+            ("Castro", 0, 1),
+            ("Delaney", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 2),
+            ("Patrick", 0, 1),
+            ("Sanders", 4, 12),
+            ("Steyer", 0, 1),
+            ("Warren", 27, 60),
+            ("Williamson", 0, 1),
+            ("Yang", 0, 2),
+        ],
+    );
+
+    market.player_ranges(
+        "ijime-deactivated20150440",
+        vec![("Yang", 3, 100), ("Gabbard", 2, 100), ("Booker", 2, 100)],
+    );
+
+    market.player_ranges(
+        "goatsgomoo",
+        vec![
+            ("Biden", 40, 75),
+            ("Sanders", 15, 75),
+            ("Warren", 15, 40),
+            ("Buttigieg", 0, 1),
+            ("Yang", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Castro", 0, 1),
+            ("Bloomberg", 0, 1),
+            ("Booker", 0, 1),
+            ("Klobuchar", 0, 1),
         ],
     );
 }

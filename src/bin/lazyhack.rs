@@ -490,6 +490,41 @@ impl Market {
         println!();
 
         self.ious.append(&mut session.ious);
+
+        println!("CLEARED SPREADS");
+        for (contract_name, contract_id) in &self.contract_names {
+            let mut value = 0;
+            let mut price = 0;
+            let mut neg_value = 0;
+            let mut neg_price = 0;
+            for iou in &self.ious {
+                if iou.status == IouStatus::Unknown(Condition::If(*contract_id)) {
+                    let holder = self.get_player(iou.holder_id);
+                    let sell = if let Some((_buy, sell)) = holder.ranges.get(contract_id) {
+                        *sell
+                    } else {
+                        100
+                    };
+                    value += iou.amount;
+                    price += iou.amount * sell / 100;
+                } else if iou.status == IouStatus::Unknown(Condition::Not(*contract_id)) {
+                    let holder = self.get_player(iou.holder_id);
+                    let buy = if let Some((buy, _sell)) = holder.ranges.get(contract_id) {
+                        *buy
+                    } else {
+                        0
+                    };
+                    neg_value += iou.amount;
+                    neg_price += iou.amount * buy / 100;
+                }
+            }
+            if value != 0 && neg_value != 0 {
+                let low = neg_price * 100 / neg_value;
+                let high = price * 100 / value;
+                println!(" - {} {}-{}", contract_name, low, high);
+            }
+        }
+        println!();
     }
 }
 

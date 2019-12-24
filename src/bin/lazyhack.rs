@@ -76,9 +76,16 @@ enum Condition {
     Not(ContractID),
 }
 
+struct Trade {
+    contract_id: ContractID,
+    trade_units: i32,
+    amount: Price,
+}
+
 struct Session {
     exposures: BTreeMap<PlayerID, Exposure>,
     ious: Vec<Iou>,
+    trades: Vec<Trade>,
 }
 
 struct Offers {
@@ -469,6 +476,14 @@ impl Market {
                 println!();
                 */
 
+                let amount = trade_units * price;
+                let trade = Trade {
+                    contract_id,
+                    trade_units,
+                    amount,
+                };
+                session.trades.push(trade);
+
                 session.push_iou(seller_iou);
                 session.push_iou(buyer_iou);
 
@@ -525,6 +540,23 @@ impl Market {
             }
         }
         println!();
+
+        println!("PRICES");
+        for (contract_name, contract_id) in &self.contract_names {
+            let mut total_units = 0;
+            let mut total_amount = 0;
+            for trade in &session.trades {
+                if trade.contract_id == *contract_id {
+                    total_units += trade.trade_units;
+                    total_amount += trade.amount;
+                }
+            }
+            if total_amount > 0 {
+                let price = total_amount / total_units;
+                println!(" - {} {}", contract_name, price);
+            }
+        }
+        println!();
     }
 }
 
@@ -532,11 +564,16 @@ impl Session {
     pub fn new(market: &Market) -> Self {
         let mut exposures = BTreeMap::new();
         let ious = Vec::new();
+        let trades = Vec::new();
         for (_player_name, player_id) in &market.player_names {
             let exposure = Exposure::new();
             exposures.insert(*player_id, exposure);
         }
-        let mut session = Session { exposures, ious };
+        let mut session = Session {
+            exposures,
+            ious,
+            trades,
+        };
         for iou in &market.ious {
             session.apply_iou(iou);
         }

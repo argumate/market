@@ -1017,6 +1017,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 28 Dec 2019
+    setup_session8(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -1876,6 +1884,51 @@ fn setup_session7(market: &mut Market) {
             ("Bloomberg", 0, 1),
             ("Booker", 0, 1),
             ("Klobuchar", 0, 1),
+        ],
+    );
+}
+
+fn setup_session8(market: &mut Market) {
+    market.player_ranges(
+        "firebendinglemur",
+        vec![
+            ("Biden", 70, 80),
+            ("Warren", 8, 10),
+            ("Sanders", 5, 6),
+            ("Gabbard", 1, 2),
+            ("Buttigieg", 0, 1),
+            ("Yang", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "thomas-midgley-did-nothing-wrong",
+        vec![
+            ("Biden", 25, 30),
+            ("Sanders", 25, 45),
+            ("Warren", 30, 45),
+            ("Yang", 1, 5),
+        ],
+    );
+
+    market.player_ranges(
+        "utilitymonstermash",
+        vec![
+            ("Bennet", 0, 1),
+            ("Biden", 32, 65),
+            ("Bloomberg", 3, 22),
+            ("Booker", 0, 1),
+            ("Buttigieg", 8, 29),
+            ("Castro", 0, 1),
+            ("Delaney", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 2),
+            ("Patrick", 0, 1),
+            ("Sanders", 4, 12),
+            ("Steyer", 0, 1),
+            ("Warren", 27, 60),
+            ("Williamson", 0, 1),
+            ("Yang", 0, 3),
         ],
     );
 }

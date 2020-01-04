@@ -1025,6 +1025,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 04 Jan 2020
+    setup_session9(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -1929,6 +1937,47 @@ fn setup_session8(market: &mut Market) {
             ("Warren", 27, 60),
             ("Williamson", 0, 1),
             ("Yang", 0, 3),
+        ],
+    );
+}
+
+fn setup_session9(market: &mut Market) {
+    market.new_player("holomanga");
+    market.rename_player("von-hresvelg", "princesse266");
+    market.contract_outcome("Castro", false);
+
+    market.player_ranges(
+        "holomanga",
+        vec![
+            ("Biden", 24, 48),
+            ("Warren", 12, 24),
+            ("Sanders", 12, 24),
+            ("Buttigieg", 6, 12),
+            ("Bloomberg", 6, 12),
+            ("Yang", 3, 6),
+            ("Klobuchar", 1, 3),
+            ("Bennet", 0, 1),
+            ("Booker", 0, 1),
+            ("Delaney", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Patrick", 0, 1),
+            ("Steyer", 0, 1),
+            ("Williamson", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "the-moti",
+        vec![
+            ("Biden", 30, 37),
+            ("Sanders", 19, 25),
+            ("Warren", 12, 17),
+            ("Buttigieg", 10, 14),
+            ("Bloomberg", 3, 13),
+            ("Klobuchar", 3, 6),
+            ("Yang", 2, 10),
+            ("Gabbard", 0, 1),
+            ("Booker", 0, 1),
         ],
     );
 }

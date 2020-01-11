@@ -232,9 +232,11 @@ impl Market {
     }
 
     pub fn dump(&self) {
-        println!("CONTRACTS ({})", self.contracts.len());
-        for (contract_name, _contract_id) in &self.contract_names {
-            println!(" - {}", contract_name);
+        println!("CONTRACTS");
+        for (contract_name, contract_id) in &self.contract_names {
+            if self.get_contract(*contract_id).outcome.is_none() {
+                println!(" - {}", contract_name);
+            }
         }
         println!();
 

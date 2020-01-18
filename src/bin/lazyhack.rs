@@ -259,7 +259,12 @@ impl Market {
     }
 
     pub fn dump_aftermath(&self) {
-        println!("IOUs ({})", self.ious.len());
+        let mut total_iou_amount = 0;
+        for iou in &self.ious {
+            total_iou_amount += iou.amount;
+        }
+
+        println!("IOUs ({}, {})", self.ious.len(), Dollars(total_iou_amount));
         for iou in &self.ious {
             let issuer_name = &self.get_player(iou.issuer_id).name;
             let holder_name = &self.get_player(iou.holder_id).name;

@@ -554,8 +554,8 @@ impl Market {
                 }
             }
             if total_amount > 0 {
-                let price = total_amount / total_units;
-                println!(" - {} {}", contract_name, price);
+                let price = f64::from(total_amount) / f64::from(total_units);
+                println!(" - {} {:0.1}", contract_name, price);
             }
         }
         println!();

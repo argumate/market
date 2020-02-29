@@ -1096,6 +1096,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 29 Feb 2020
+    setup_session17(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -3305,6 +3313,115 @@ fn setup_session16(market: &mut Market) {
             ("Klobuchar", 0, 8),
             ("Sanders", 55, 70),
             ("Warren", 2, 38),
+        ],
+    );
+}
+
+fn setup_session17(market: &mut Market) {
+    market.player_ranges(
+        "hirosensei",
+        vec![
+            ("Biden", 20, 50),
+            ("Bloomberg", 0, 1),
+            ("Buttigieg", 20, 50),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 5),
+            ("Sanders", 50, 100),
+            ("Steyer", 0, 1),
+            ("Warren", 0, 10),
+        ],
+    );
+
+    market.player_ranges(
+        "flakmaniak",
+        vec![
+            ("Sanders", 40, 80),
+            ("Warren", 2, 10),
+            ("Biden", 10, 30),
+            ("Buttigieg", 0, 5),
+            ("Klobuchar", 0, 5),
+            ("Bloomberg", 0, 10),
+            ("Gabbard", 0, 1),
+            ("Steyer", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "placid-platypus",
+        vec![
+            ("Sanders", 50, 65),
+            ("Buttigieg", 10, 20),
+            ("Biden", 10, 20),
+            ("Warren", 4, 10),
+            ("Klobuchar", 2, 10),
+            ("Bloomberg", 3, 10),
+            ("Gabbard", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "the-moti",
+        vec![
+            ("Sanders", 55, 67),
+            ("Biden", 17, 25),
+            ("Bloomberg", 7, 15),
+            ("Buttigieg", 1, 7),
+            ("Warren", 1, 3),
+            ("Klobuchar", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "lalaithion",
+        vec![
+            ("Sanders", 40, 80),
+            ("Biden", 10, 40),
+            ("Buttigieg", 2, 7),
+            ("Warren", 2, 4),
+            ("Bloomberg", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 1),
+            ("Steyer", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "utilitymonstermash",
+        vec![
+            ("Biden", 0, 20),
+            ("Bloomberg", 0, 12),
+            ("Buttigieg", 0, 30),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 5),
+            ("Sanders", 60, 82),
+            ("Warren", 0, 25),
+        ],
+    );
+
+    market.player_ranges(
+        "goatsgomoo",
+        vec![
+            ("Sanders", 99, 100),
+            ("Buttigieg", 0, 20),
+            ("Warren", 0, 60),
+            ("Biden", 0, 1),
+            ("Bloomberg", 0, 1),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 1),
+            ("Steyer", 0, 1),
+        ],
+    );
+
+    market.player_ranges(
+        "squareallworthy",
+        vec![
+            ("Biden", 14, 15),
+            ("Bloomberg", 4, 5),
+            ("Buttigieg", 5, 6),
+            ("Gabbard", 0, 1),
+            ("Klobuchar", 0, 1),
+            ("Sanders", 65, 66),
+            ("Warren", 9, 10),
         ],
     );
 }

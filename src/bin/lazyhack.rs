@@ -1104,6 +1104,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 07 Mar 2020
+    setup_session18(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -3423,5 +3431,141 @@ fn setup_session17(market: &mut Market) {
             ("Sanders", 65, 66),
             ("Warren", 9, 10),
         ],
+    );
+}
+
+fn setup_session18(market: &mut Market) {
+    market.new_player("darvince-2019");
+    market.new_player("wizzeh");
+    market.new_player("thehairyballtheorem");
+    market.new_player("confusedbyinterface");
+    market.new_player("ms-demeanor");
+
+    market.contract_outcome("Steyer", false);
+    market.contract_outcome("Buttigieg", false);
+    market.contract_outcome("Klobuchar", false);
+    market.contract_outcome("Bloomberg", false);
+    market.contract_outcome("Warren", false);
+
+    market.player_ranges(
+        "holomanga",
+        vec![("Sanders", 32, 64), ("Biden", 16, 32), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "birth-muffins-death",
+        vec![("Biden", 20, 60), ("Sanders", 40, 80), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "irradiate-space",
+        vec![("Biden", 0, 40), ("Sanders", 40, 97), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges("worriedaboutmyfern", vec![("Biden", 99, 100)]);
+
+    market.player_ranges("darvince-2019", vec![("Biden", 98, 99), ("Sanders", 2, 3)]);
+
+    market.player_ranges("tanadrin", vec![("Sanders", 0, 10), ("Biden", 90, 100)]);
+
+    market.player_ranges(
+        "understatedocelot",
+        vec![("Biden", 81, 100), ("Sanders", 21, 40), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "firebendinglemur",
+        vec![("Biden", 60, 90), ("Sanders", 10, 15)],
+    );
+
+    market.player_ranges(
+        "ouroborostriumphant",
+        vec![("Sanders", 40, 60), ("Biden", 35, 55)],
+    );
+
+    market.player_ranges(
+        "lipstickchainsaw",
+        vec![("Biden", 40, 55), ("Sanders", 40, 55), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "hirosensei",
+        vec![("Biden", 40, 100), ("Sanders", 40, 100), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges("wizzeh", vec![("Biden", 70, 80), ("Sanders", 15, 20)]);
+
+    market.player_ranges(
+        "thehairyballtheorem",
+        vec![("Biden", 80, 100), ("Sanders", 0, 20)],
+    );
+
+    market.player_ranges(
+        "triviallytrue",
+        vec![("Sanders", 40, 60), ("Biden", 40, 60), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "flakmaniak",
+        vec![("Biden", 40, 80), ("Sanders", 20, 50), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "confusedbyinterface",
+        vec![("Biden", 70, 90), ("Sanders", 10, 30), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "princesse266",
+        vec![("Sanders", 60, 80), ("Biden", 40, 60), ("Gabbard", 0, 5)],
+    );
+
+    market.player_ranges(
+        "thomas-midgley-did-nothing-wrong",
+        vec![("Biden", 50, 60), ("Sanders", 40, 55), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "squareallworthy",
+        vec![("Biden", 70, 71), ("Gabbard", 0, 1), ("Sanders", 29, 30)],
+    );
+
+    market.player_ranges(
+        "goatsgomoo",
+        vec![("Sanders", 30, 100), ("Biden", 70, 100), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "kwarrtz",
+        vec![("Sanders", 50, 65), ("Biden", 40, 55), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "utilitymonstermash",
+        vec![("Sanders", 15, 40), ("Biden", 60, 85), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "placid-platypus",
+        vec![("Biden", 75, 90), ("Sanders", 9, 20), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "the-moti",
+        vec![("Sanders", 5, 20), ("Biden", 80, 95), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "cromulentenough",
+        vec![("Sanders", 3, 20), ("Biden", 80, 90), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges("ijime-deactivated20150440", vec![("Biden", 0, 75)]);
+
+    market.player_ranges("ms-demeanor", vec![("Biden", 95, 100)]);
+
+    market.player_ranges(
+        "lalaithion",
+        vec![("Biden", 50, 98), ("Sanders", 30, 75), ("Gabbard", 0, 3)],
     );
 }

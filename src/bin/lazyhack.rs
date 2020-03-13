@@ -1112,6 +1112,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 14 Mar 2020
+    setup_session19(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -3567,5 +3575,105 @@ fn setup_session18(market: &mut Market) {
     market.player_ranges(
         "lalaithion",
         vec![("Biden", 50, 98), ("Sanders", 30, 75), ("Gabbard", 0, 3)],
+    );
+}
+
+fn setup_session19(market: &mut Market) {
+    market.new_player("floofshy");
+
+    market.player_ranges("qualiteagirl", vec![("Biden", 30, 60), ("Sanders", 20, 40)]);
+
+    market.player_ranges("intercal", vec![("Sanders", 0, 15), ("Biden", 50, 85)]);
+
+    market.player_ranges("holomanga", vec![("Biden", 92, 100), ("Sanders", 0, 8)]);
+
+    market.player_ranges("wizzeh", vec![("Biden", 95, 99), ("Sanders", 5, 6)]);
+
+    market.player_ranges("tanadrin", vec![("Biden", 99, 100), ("Sanders", 0, 1)]);
+
+    market.player_ranges(
+        "ouroborostriumphant",
+        vec![("Biden", 85, 97), ("Sanders", 3, 10)],
+    );
+
+    market.player_ranges(
+        "flakmaniak",
+        vec![("Biden", 80, 100), ("Sanders", 0, 5), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges("kwarrtz", vec![("Biden", 99, 100), ("Sanders", 0, 1)]);
+
+    market.player_ranges(
+        "confusedbyinterface",
+        vec![("Biden", 95, 100), ("Sanders", 0, 5), ("Gabbard", 0, 3)],
+    );
+
+    market.player_ranges(
+        "utilitymonstermash",
+        vec![("Biden", 80, 96), ("Sanders", 0, 8), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "birth-muffins-death",
+        vec![("Biden", 80, 100), ("Sanders", 0, 15), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "lipstickchainsaw",
+        vec![("Biden", 90, 100), ("Sanders", 5, 10), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "hirosensei",
+        vec![("Biden", 60, 100), ("Sanders", 20, 80), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "understatedocelot",
+        vec![("Biden", 99, 100), ("Sanders", 0, 1), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "thehairyballtheorem",
+        vec![("Biden", 98, 100), ("Sanders", 0, 2)],
+    );
+
+    market.player_ranges(
+        "goatsgomoo",
+        vec![("Biden", 99, 100), ("Sanders", 0, 40), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "placid-platypus",
+        vec![("Biden", 96, 99), ("Sanders", 0, 2), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges("qualiteagirl", vec![("Biden", 98, 100), ("Sanders", 0, 2)]);
+
+    market.player_ranges(
+        "floofshy",
+        vec![("Biden", 96, 100), ("Sanders", 1, 4), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "thomas-midgley-did-nothing-wrong",
+        vec![("Biden", 60, 85), ("Sanders", 30, 55)],
+    );
+
+    market.player_ranges("learn-tilde-ath", vec![("Biden", 93, 100)]);
+
+    market.player_ranges(
+        "the-moti",
+        vec![("Biden", 95, 100), ("Sanders", 0, 2), ("Gabbard", 0, 1)],
+    );
+
+    market.player_ranges(
+        "firebendinglemur",
+        vec![("Biden", 85, 96), ("Sanders", 4, 8)],
+    );
+
+    market.player_ranges(
+        "squareallworthy",
+        vec![("Biden", 96, 97), ("Gabbard", 0, 1), ("Sanders", 2, 3)],
     );
 }

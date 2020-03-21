@@ -1120,6 +1120,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 21 Mar 2020
+    setup_session20(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -3676,4 +3684,19 @@ fn setup_session19(market: &mut Market) {
         "squareallworthy",
         vec![("Biden", 96, 97), ("Gabbard", 0, 1), ("Sanders", 2, 3)],
     );
+}
+
+fn setup_session20(market: &mut Market) {
+    market.contract_outcome("Gabbard", false);
+
+    market.player_ranges(
+        "cromulentenough",
+        vec![("Sanders", 0, 2), ("Biden", 95, 98)],
+    );
+
+    market.player_ranges("candleprism", vec![("Biden", 90, 98), ("Sanders", 2, 4)]);
+
+    market.player_ranges("holomanga", vec![("Sanders", 0, 3), ("Biden", 97, 100)]);
+
+    market.player_ranges("hirosensei", vec![("Biden", 60, 100), ("Sanders", 20, 60)]);
 }

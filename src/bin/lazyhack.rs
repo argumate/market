@@ -1136,6 +1136,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 04 Apr 2020
+    setup_session22(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -3716,4 +3724,8 @@ fn setup_session21(market: &mut Market) {
         "confusedbyinterface",
         vec![("Biden", 95, 100), ("Sanders", 3, 5)],
     );
+}
+
+fn setup_session22(market: &mut Market) {
+    market.player_ranges("hirosensei", vec![("Biden", 20, 80), ("Sanders", 20, 80)]);
 }

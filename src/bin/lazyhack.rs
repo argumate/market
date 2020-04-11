@@ -1144,6 +1144,14 @@ fn main() {
     market.dump();
     market.session();
     market.dump_aftermath();
+
+    // Sat 11 Apr 2020
+    setup_session23(&mut market);
+    market.increment_credit(1000);
+
+    market.dump();
+    market.session();
+    market.dump_aftermath();
 }
 
 fn setup_session1(market: &mut Market) {
@@ -3728,4 +3736,18 @@ fn setup_session21(market: &mut Market) {
 
 fn setup_session22(market: &mut Market) {
     market.player_ranges("hirosensei", vec![("Biden", 20, 80), ("Sanders", 20, 80)]);
+}
+
+fn setup_session23(market: &mut Market) {
+    market.contract_outcome("Sanders", false);
+
+    market.player_ranges("flakmaniak", vec![]);
+
+    market.player_ranges("intercal", vec![("Biden", 99, 100)]);
+
+    market.player_ranges("hirosensei", vec![("Biden", 99, 100)]);
+
+    market.player_ranges("firebendinglemur", vec![("Biden", 95, 98)]);
+
+    market.player_ranges("utilitymonstermash", vec![("Biden", 80, 98)]);
 }
